@@ -35,3 +35,43 @@ export const AppProvider = ({ children }) => {
       setLoadingUser(false);
     }
   };
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const login = async (usernameOrEmail, password) => {
+    // Backend expects either username or email and password
+    const payload = {};
+    if (usernameOrEmail.includes('@')) {
+      payload.email = usernameOrEmail;
+    } else {
+      payload.username = usernameOrEmail;
+    }
+    payload.password = password;
+
+    const res = await axios.post('/api/v1/users/login', payload);
+    if (res.data?.success) {
+      setUser(res.data.data.user);
+      return { success: true };
+    }
+    return { success: false, message: res.data?.message || 'Login failed' };
+  };
+
+  const register = async (formData) => {
+    // formData must be a FormData instance due to avatar/coverImage file uploads
+    const res = await axios.post('/api/v1/users/register', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  };
+
+  const logout = async () => {
+    try {
+      await axios.post('/api/v1/users/logout');
+    } catch (error) {
+      console.error('Logout error', error);
+    } finally {
+      setUser(null);
