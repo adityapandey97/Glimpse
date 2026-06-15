@@ -320,4 +320,143 @@ const updateAccountDetails = asyncHandler(async(req,res, next)=>{
         }
     ).select("-password")
 
-    return res
+    return res
+    .status(200)
+    .json(new ApiResponse(200,user,"account deatils updated successfully"))
+
+})
+
+const updateUserAvtar = asyncHandler(async(req,res, next)=>{
+    const avatarLocalPath = req.file?.path
+
+    if(!avatarLocalPath){
+        throw new ApiError(400 , "avatar not found in local path")
+    }
+
+    // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
+    const avatar = await cloudinaryupload(avatarLocalPath)
+
+    if(!avatar.url){
+        throw new ApiError(400, "not uploaded on cloud")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                avatar:avatar.url
+            }
+        },
+        {new : true}
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse( 200 ,user,"update avatar successfully"))
+
+})
+
+
+const updateUsercoverImage = asyncHandler(async(req,res, next)=>{
+    const coverImageLocalPath = req.file?.path
+
+    if(!coverImageLocalPath){
+        throw new ApiError(400 , "avatar not found in local path")
+    }
+
+    // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
+    const coverImage = await cloudinaryupload(coverImageLocalPath)
+
+    if(!coverImage.url){
+        throw new ApiError(400, "not uploaded on cloud")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                coverImage:coverImage.url
+            }
+        },
+        {new : true}
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse( 200 ,user,"update coverImage successfully"))
+
+})
+
+const deleteUser = asyncHandler(async (req, res, next) => {
+    /* Modified by Antigravity: User Account Deletion with full cascading cleanup */
+    const userId = req.user?._id;
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // 1. Find and delete all videos uploaded by user, plus their likes/comments/playlist references
+    const videos = await Video.find({ owner: userId });
+    for (const video of videos) {
+        await Like.deleteMany({ video: video._id });
+        await Comment.deleteMany({ video: video._id });
+        await Playlist.updateMany({}, { $pull: { videos: video._id } });
+        await Video.findByIdAndDelete(video._id);
+    }
+
+    // 2. Delete all playlists created by the user
+    await Playlist.deleteMany({ owner: userId });
+
+    // 3. Delete all tweets posted by the user, and their associated likes
+    const tweets = await Tweet.find({ owner: userId });
+    for (const tweet of tweets) {
+        await Like.deleteMany({ tweet: tweet._id });
+        await Tweet.findByIdAndDelete(tweet._id);
+    }
+
+    // 4. Delete all comments posted by the user
+    await Comment.deleteMany({ commentby: userId });
+
+    // 5. Delete all likes created by the user
+    await Like.deleteMany({ likedby: userId });
+
+    // 6. Delete subscriptions where user is subscriber or channel owner
+    await Subscription.deleteMany({
+        $or: [
+            { subscriber: userId },
+            { channel: userId }
+        ]
+    });
+
+    // 7. Delete the user document itself
+    await User.findByIdAndDelete(userId);
+
+    // 8. Clear the auth cookies
+    const options = {
+        httpOnly: true,
+        secure: true
+    };
+
+    return res
+        .status(200)
+        .clearCookie("refreshToken", options)
+        .clearCookie("accessToken", options)
+        .json(new ApiResponse(200, {}, "User account and all associated data deleted successfully"));
+});
+
+export { 
+    registerUser, 
+    loginUser, 
+    logoutUser, 
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvtar,
+    updateUsercoverImage,
+    deleteUser
+};
