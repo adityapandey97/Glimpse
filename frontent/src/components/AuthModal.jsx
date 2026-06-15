@@ -238,3 +238,105 @@ const AuthModal = ({ onClose }) => {
               <label className="input-label">Username</label>
               <input
                 type="text"
+                placeholder="e.g. aditya_codes"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="input-field"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="input-label">Full Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Aditya Pandey"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="input-field"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="input-label">Email</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: '40px' }}
+                  required
+                />
+                <Mail size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="input-label">Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  placeholder="Min 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: '40px' }}
+                  required
+                />
+                <Lock size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="input-label">Profile Avatar (Required)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label className="btn btn-secondary" style={{ flexGrow: 1, fontSize: '13px', cursor: 'pointer' }}>
+                  <Camera size={16} />
+                  <span>Choose Avatar</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setAvatar(e.target.files[0])}
+                    style={{ display: 'none' }}
+                    required
+                  />
+                </label>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {avatar ? avatar.name : 'No file chosen'}
+                </span>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '24px' }}>
+              <label className="input-label">Cover Image (Optional)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label className="btn btn-secondary" style={{ flexGrow: 1, fontSize: '13px', cursor: 'pointer' }}>
+                  <Camera size={16} />
+                  <span>Choose Cover</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setCoverImage(e.target.files[0])}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {coverImage ? coverImage.name : 'No file chosen'}
+                </span>
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
+              {loading ? 'Creating Account...' : 'Register'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AuthModal;
