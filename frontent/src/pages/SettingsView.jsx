@@ -263,3 +263,116 @@ const SettingsView = () => {
           gap: '24px'
         }}>
           {/* Avatar Form */}
+          <form onSubmit={handleUpdateAvatar} className="glass-panel" style={{ padding: '24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Camera size={16} />
+              <span>Change Avatar</span>
+            </h3>
+
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px' }}>
+              <img
+                src={user.avatar}
+                alt="avatar"
+                style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }}
+              />
+              <div style={{ flexGrow: 1 }}>
+                <label className="btn btn-secondary" style={{ width: '100%', fontSize: '13px', cursor: 'pointer' }}>
+                  Choose Avatar File
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setAvatarFile(e.target.files[0])}
+                    style={{ display: 'none' }}
+                    required
+                  />
+                </label>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {avatarFile ? avatarFile.name : 'No file selected'}
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={avatarLoading || !avatarFile}>
+              {avatarLoading ? 'Uploading...' : 'Upload New Avatar'}
+            </button>
+          </form>
+
+          {/* Cover Image Form */}
+          <form onSubmit={handleUpdateCover} className="glass-panel" style={{ padding: '24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Camera size={16} />
+              <span>Change Cover Image</span>
+            </h3>
+
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '90px',
+                height: '50px',
+                borderRadius: '4px',
+                background: user.coverImage ? `url(${user.coverImage}) center/cover no-repeat` : 'var(--primary-glow)',
+                border: '1px solid var(--border-color)'
+              }}></div>
+              <div style={{ flexGrow: 1 }}>
+                <label className="btn btn-secondary" style={{ width: '100%', fontSize: '13px', cursor: 'pointer' }}>
+                  Choose Cover File
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setCoverFile(e.target.files[0])}
+                    style={{ display: 'none' }}
+                    required
+                  />
+                </label>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {coverFile ? coverFile.name : 'No file selected'}
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={coverLoading || !coverFile}>
+              {coverLoading ? 'Uploading...' : 'Upload New Cover'}
+            </button>
+          </form>
+        </div>
+
+        {/* Modified by Antigravity: Danger Zone for account deletion */}
+        <div className="glass-panel" style={{
+          padding: '24px',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          background: 'rgba(239, 68, 68, 0.02)',
+          marginTop: '8px'
+        }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldAlert size={18} />
+            <span>Danger Zone</span>
+          </h3>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+            Once you delete your account, there is no going back. All of your videos, playlists, tweets, comments, likes, and subscription relations will be permanently removed.
+          </p>
+          <button
+            onClick={handleDeleteAccount}
+            className="btn"
+            style={{
+              background: '#ef4444',
+              color: '#fff',
+              border: 'none',
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background var(--transition-fast)'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
+          >
+            Delete Account Permanently
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default SettingsView;
