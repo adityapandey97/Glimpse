@@ -154,3 +154,70 @@ const UploadModal = ({ onClose, onUploadSuccess }) => {
                   required
                 />
               </label>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {thumbnail ? thumbnail.name : 'No file chosen'}
+              </span>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="input-label">Title</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Catchy video title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="input-field"
+                style={{ paddingLeft: '40px' }}
+                required
+                disabled={loading}
+              />
+              <Type size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '24px' }}>
+            <label className="input-label">Description</label>
+            <div style={{ position: 'relative' }}>
+              <textarea
+                placeholder="What is this video about?"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="input-field"
+                style={{ paddingLeft: '40px', minHeight: '80px', resize: 'vertical' }}
+                required
+                disabled={loading}
+              />
+              <FileText size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          {loading && (
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                <span>Uploading files to server...</span>
+                <span>{progress}%</span>
+              </div>
+              <div style={{ width: '100%', height: '6px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                <div style={{ width: `${progress}%`, height: '100%', background: 'var(--primary-glow)', transition: 'width 0.1s ease' }}></div>
+              </div>
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            className="btn btn-primary" 
+            style={{ width: '100%', padding: '12px' }} 
+            disabled={loading}
+          >
+            {loading ? `Uploading (${progress}%)...` : 'Publish Video'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default UploadModal;
