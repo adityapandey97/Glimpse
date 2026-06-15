@@ -239,3 +239,106 @@ function App() {
         <AuthModal onClose={() => setShowAuthModal(false)} />
       )}
       {showUploadModal && (
+        <UploadModal 
+          onClose={() => setShowUploadModal(false)} 
+          onUploadSuccess={() => {
+            if (activeTab === 'dashboard') {
+              window.location.reload();
+            } else {
+              setActiveTab('dashboard');
+            }
+          }} 
+        />
+      )}
+      
+      {/* Hide Sidebar Desktop class at mobile breakpoint */}
+      <style>{`
+        @media (max-width: 991px) {
+          .sidebar-desktop {
+            display: none !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* Subpage: Liked Videos Page (rendered inline for cleaner component management) */
+const LikedVideosPage = () => {
+  const { user, setActiveVideoId } = useContext(AppContext);
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLikedVideos = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const res = await axios.get('/api/v1/likes/videos');
+        if (res.data?.success) {
+          setVideos(res.data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching liked videos', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLikedVideos();
+  }, [user]);
+
+  if (!user) {
+    return (
+      <div style={{ padding: '40px 24px', textAlign: 'center', flexGrow: 1 }}>
+        <h3>Please sign in to view your liked videos.</h3>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ flexGrow: 1, padding: '24px', overflowY: 'auto' }} className="animate-fade">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
+        <Heart size={24} style={{ color: 'var(--accent)' }} />
+        <h2 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+          Liked Videos
+        </h2>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+          <div style={{
+            width: '30px',
+            height: '30px',
+            border: '3px solid var(--border-color)',
+            borderTopColor: 'var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+        </div>
+      ) : videos.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '60px 24px',
+          background: 'var(--bg-secondary)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-color)',
+          color: 'var(--text-secondary)'
+        }}>
+          <Heart size={40} style={{ color: 'var(--text-muted)', marginBottom: '12px', display: 'inline-block' }} />
+          <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>No liked videos</h3>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            Videos you like will appear here for easy access later.
+          </p>
+        </div>
+      ) : (
+        <div className="grid-feed">
+          {videos.map((video) => (
+            <VideoCard key={video._id} video={video} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
