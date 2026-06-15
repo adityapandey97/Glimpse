@@ -75,3 +75,81 @@ const Sidebar = ({ isCollapsed, isDrawer, onCloseDrawer, onOpenAuth }) => {
               }}
               title={item.label}
             >
+              <Icon size={18} style={{ flexShrink: 0 }} />
+              {!isCollapsed && <span>{item.label}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Lower Menu Items */}
+      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.03)' }}>
+        {lowerItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: isCollapsed ? '0' : '12px',
+                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                padding: '12px',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                background: isActive ? 'var(--primary-glow)' : 'transparent',
+                color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: isActive ? '600' : '500',
+                fontSize: '14px',
+                transition: 'all var(--transition-fast)',
+              }}
+              title={item.label}
+            >
+              <Icon size={18} style={{ flexShrink: 0 }} />
+              {!isCollapsed && <span>{item.label}</span>}
+            </button>
+          );
+        })}
+
+        {/* Guest Sign In / Sign Up (Lower Part) */}
+        {!user && (
+          <button
+            onClick={() => { if(onOpenAuth) onOpenAuth(); if(isDrawer && onCloseDrawer) onCloseDrawer(); }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: isCollapsed ? '0' : '12px',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
+              padding: '12px',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--primary)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: '600',
+              fontSize: '14px',
+              transition: 'all var(--transition-fast)',
+            }}
+            title="Sign In / Sign Up"
+          >
+            <User size={18} style={{ flexShrink: 0, color: 'var(--primary)' }} />
+            {!isCollapsed && <span>Sign In / Up</span>}
+          </button>
+        )}
+
+        {/* Logout (Lower Part) */}
+        {user && (
+          <button
+            onClick={() => { logout(); if(isDrawer && onCloseDrawer) onCloseDrawer(); }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: isCollapsed ? '0' : '12px',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
+              padding: '12px',
