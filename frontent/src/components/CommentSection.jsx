@@ -154,3 +154,70 @@ const CommentSection = ({ videoId }) => {
                   }}
                 />
                 
+                <div style={{ flexGrow: 1, background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  {/* Top: Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      {commentOwner.fullName || 'User'}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {new Date(comment.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {/* Comment Body / Edit Form */}
+                  {editingCommentId === comment._id ? (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                      <input
+                        type="text"
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        className="input-field"
+                        style={{ padding: '6px 12px', fontSize: '13px' }}
+                        autoFocus
+                      />
+                      <button onClick={() => handleEditComment(comment._id)} className="btn-icon" style={{ color: 'var(--success)' }}>
+                        <Check size={16} />
+                      </button>
+                      <button onClick={() => setEditingCommentId(null)} className="btn-icon" style={{ color: 'var(--danger)' }}>
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                      {comment.content}
+                    </p>
+                  )}
+
+                  {/* Actions (Edit / Delete) */}
+                  {isMyComment && editingCommentId !== comment._id && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px', justifyContent: 'flex-end' }}>
+                      <button 
+                        onClick={() => { setEditingCommentId(comment._id); setEditingText(comment.content); }} 
+                        className="btn-icon" 
+                        title="Edit Comment"
+                        style={{ padding: '4px' }}
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteComment(comment._id)} 
+                        className="btn-icon" 
+                        title="Delete Comment"
+                        style={{ padding: '4px', color: 'var(--danger)' }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CommentSection;
