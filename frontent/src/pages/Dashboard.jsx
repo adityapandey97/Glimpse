@@ -220,3 +220,99 @@ const Dashboard = () => {
                             <span>{vid.isPublished ? 'Published' : 'Unpublished'}</span>
                           </button>
                         </td>
+
+                        {/* Video Info Column */}
+                        <td style={{ padding: '16px 8px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <img
+                            src={vid.thumbnail}
+                            alt=""
+                            style={{ width: '70px', aspectRatio: '16/9', borderRadius: '4px', objectFit: 'cover', background: '#000', flexShrink: 0 }}
+                          />
+                          {editingVideoId === vid._id ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                              <input
+                                type="text"
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                className="input-field"
+                                style={{ padding: '4px 8px', fontSize: '12px' }}
+                              />
+                              <textarea
+                                value={editDescription}
+                                onChange={(e) => setEditDescription(e.target.value)}
+                                className="input-field"
+                                style={{ padding: '4px 8px', fontSize: '12px', minHeight: '40px' }}
+                              />
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                              <span style={{ fontWeight: '600', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                                {vid.title}
+                              </span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                                {vid.description}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Views Column */}
+                        <td style={{ padding: '16px 8px', color: 'var(--text-secondary)' }}>
+                          {(typeof vid.views === 'number' ? vid.views : (vid.views?.length || 0))}
+                        </td>
+
+                        {/* Date Column */}
+                        <td style={{ padding: '16px 8px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                          {new Date(vid.createdAt).toLocaleDateString()}
+                        </td>
+
+                        {/* Actions Column */}
+                        <td style={{ padding: '16px 8px', textAlign: 'right' }}>
+                          {editingVideoId === vid._id ? (
+                            <div style={{ display: 'inline-flex', gap: '8px' }}>
+                              <button onClick={() => handleEditSubmit(vid._id)} className="btn-icon" style={{ color: 'var(--success)' }}>
+                                <Check size={16} />
+                              </button>
+                              <button onClick={() => setEditingVideoId(null)} className="btn-icon" style={{ color: 'var(--danger)' }}>
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'inline-flex', gap: '8px' }}>
+                              <button
+                                onClick={() => {
+                                  setEditingVideoId(vid._id);
+                                  setEditTitle(vid.title);
+                                  setEditDescription(vid.description);
+                                }}
+                                className="btn-icon"
+                                title="Edit Video Details"
+                              >
+                                <Edit2 size={15} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteVideo(vid._id)}
+                                className="btn-icon"
+                                style={{ color: 'var(--danger)' }}
+                                title="Delete Video"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default Dashboard;
