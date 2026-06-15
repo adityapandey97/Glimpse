@@ -118,3 +118,123 @@ const AuthModal = ({ onClose }) => {
           color: 'var(--text-secondary)'
         }}>
           <X size={20} />
+        </button>
+
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <span className="gradient-text" style={{ fontStyle: 'italic', fontWeight: '800', fontSize: '24px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            ChaiPlay <Sparkles size={16} style={{ color: 'var(--accent)' }} />
+          </span>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            {isLogin ? 'Welcome back! Log in to continue.' : 'Create an account to start sharing.'}
+          </p>
+        </div>
+
+        {/* Tab Selection */}
+        <div style={{
+          display: 'flex',
+          background: 'var(--bg-secondary)',
+          padding: '4px',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: '20px',
+          border: '1px solid var(--border-color)'
+        }}>
+          <button
+            onClick={() => { setIsLogin(true); setErrorMsg(''); }}
+            style={{
+              flexGrow: 1,
+              padding: '10px',
+              border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              background: isLogin ? 'var(--bg-primary)' : 'transparent',
+              color: isLogin ? 'var(--text-primary)' : 'var(--text-secondary)',
+              fontWeight: '600',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontFamily: 'var(--font-sans)',
+              transition: 'all var(--transition-fast)'
+            }}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => { setIsLogin(false); setErrorMsg(''); }}
+            style={{
+              flexGrow: 1,
+              padding: '10px',
+              border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              background: !isLogin ? 'var(--bg-primary)' : 'transparent',
+              color: !isLogin ? 'var(--text-primary)' : 'var(--text-secondary)',
+              fontWeight: '600',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontFamily: 'var(--font-sans)',
+              transition: 'all var(--transition-fast)'
+            }}
+          >
+            Register
+          </button>
+        </div>
+
+        {/* Error Message */}
+        {errorMsg && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: 'var(--danger)',
+            padding: '12px',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '13px',
+            marginBottom: '16px',
+            textAlign: 'center'
+          }}>
+            {errorMsg}
+          </div>
+        )}
+
+        {/* Forms */}
+        {isLogin ? (
+          <form onSubmit={handleLoginSubmit}>
+            <div className="form-group">
+              <label className="input-label">Username or Email</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Enter email or username"
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: '40px' }}
+                  required
+                />
+                <User size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '24px' }}>
+              <label className="input-label">Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: '40px' }}
+                  required
+                />
+                <Lock size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
+              {loading ? 'Logging in...' : 'Sign In'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleRegisterSubmit} style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px' }}>
+            <div className="form-group">
+              <label className="input-label">Username</label>
+              <input
+                type="text"
