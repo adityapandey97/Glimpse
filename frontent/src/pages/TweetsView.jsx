@@ -204,3 +204,91 @@ const TweetsView = () => {
                   display: 'flex',
                   gap: '14px'
                 }}
+              >
+                <img
+                  src={tweetOwner.avatar || 'https://via.placeholder.com/40'}
+                  alt=""
+                  style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-full)', objectFit: 'cover', border: '1px solid var(--border-color)', flexShrink: 0 }}
+                />
+
+                <div style={{ flexGrow: 1, minWidth: 0 }}>
+                  {/* Top header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {tweetOwner.fullName || 'User'}
+                        <Sparkles size={12} style={{ color: 'var(--accent)' }} />
+                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        @{tweetOwner.username || 'user'}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {new Date(tweet.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {/* Body Content / Edit Form */}
+                  {editingTweetId === tweet._id ? (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                      <input
+                        type="text"
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        className="input-field"
+                        style={{ padding: '6px 12px', fontSize: '14px' }}
+                        autoFocus
+                      />
+                      <button onClick={() => handleEditTweet(tweet._id)} className="btn-icon" style={{ color: 'var(--success)' }}>
+                        <Check size={16} />
+                      </button>
+                      <button onClick={() => setEditingTweetId(null)} className="btn-icon" style={{ color: 'var(--danger)' }}>
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '15px', color: 'var(--text-primary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+                      {tweet.content}
+                    </p>
+                  )}
+
+                  {/* Bottom Panel */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.02)' }}>
+                    <button className="btn-icon" style={{ padding: '4px', gap: '4px', fontSize: '12px' }}>
+                      <Heart size={14} />
+                      <span>{tweet._id.startsWith('mock') ? 12 : 0}</span>
+                    </button>
+
+                    {isMyTweet && editingTweetId !== tweet._id && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => { setEditingTweetId(tweet._id); setEditingText(tweet.content); }}
+                          className="btn-icon"
+                          title="Edit Post"
+                          style={{ padding: '4px' }}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTweet(tweet._id)}
+                          className="btn-icon"
+                          style={{ padding: '4px', color: 'var(--danger)' }}
+                          title="Delete Post"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TweetsView;
