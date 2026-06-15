@@ -192,3 +192,86 @@ const PlaylistsView = () => {
           {/* Playlists grid */}
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+              <div style={{
+                width: '35px',
+                height: '35px',
+                border: '3px solid var(--border-color)',
+                borderTopColor: 'var(--primary)',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+            </div>
+          ) : playlists.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 24px',
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-secondary)'
+            }}>
+              <FolderHeart size={44} style={{ color: 'var(--text-muted)', marginBottom: '12px', display: 'inline-block' }} />
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>No Playlists Yet</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '14px' }}>Create your first playlist to organize content.</p>
+            </div>
+          ) : (
+            <div className="grid-feed" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+              {playlists.map((playlist) => (
+                <div
+                  key={playlist._id}
+                  onClick={() => loadPlaylistDetails(playlist._id)}
+                  className="glass-panel"
+                  style={{
+                    padding: '20px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-color)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    transition: 'all var(--transition-fast)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.borderColor = 'var(--primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)' }}>
+                    <ListVideo size={18} />
+                    <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Playlist</span>
+                  </div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>{playlist.name}</h3>
+                  <p style={{
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    margin: 0
+                  }}>
+                    {playlist.description || 'No description.'}
+                  </p>
+                  <div style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    marginTop: '12px',
+                    paddingTop: '8px',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.02)'
+                  }}>
+                    {playlist.videos?.length || 0} videos
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default PlaylistsView;
