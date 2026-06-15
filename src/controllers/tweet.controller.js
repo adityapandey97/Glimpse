@@ -94,4 +94,46 @@ const updateTweet = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(
-            new ApiResponse(
+            new ApiResponse(
+                200,
+                updatedTweet,
+                "Tweet updated successfully"
+            )
+        )
+})
+
+const deleteTweet = asyncHandler(async (req, res) => {
+    const {tweetId} = req.params
+    if(!isValidObjectId(tweetId)) {
+        throw new ApiError(400, "Invalid tweet id")
+    }
+    // here the bug fixed by copilot and the bug is no authorization check on update/delete. Explanation: Users could update/delete tweets they don't own.
+    const tweet = await Tweet.findById(tweetId)
+    if(!tweet) {
+        throw new ApiError(404, "Tweet not found")
+    }
+    if(tweet.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to delete this tweet")
+    }
+
+    // Modified by Antigravity: delete all likes associated with this tweet
+    await Like.deleteMany({ tweet: tweetId });
+
+    const deletedTweet = await Tweet.findByIdAndDelete(tweetId)
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                deletedTweet,
+                "Tweet deleted successfully"
+            )
+        )
+})
+
+export {
+    createTweet,
+    getUserTweets,
+    updateTweet,
+    deleteTweet
+}
