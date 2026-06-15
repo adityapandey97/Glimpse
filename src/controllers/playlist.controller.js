@@ -153,4 +153,71 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     if(!isValidObjectId(playlistId)) {
         throw new ApiError(400, "Invalid playlist id")
-    }
+    }
+    // here the bug fixed by copilot and the bug is no ownership checks. Explanation: Users could delete playlists they don't own.
+    const playlist = await Playlist.findById(playlistId)
+    if(!playlist) {
+        throw new ApiError(404, "Playlist not found")
+    }
+    if(playlist.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to delete this playlist")
+    }
+    await Playlist.findByIdAndDelete(playlistId)
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200, 
+            playlist, 
+            "Playlist deleted successfully"
+        )
+    )
+})
+
+const updatePlaylist = asyncHandler(async (req, res) => {
+    const {playlistId} = req.params
+    const {name, description} = req.body
+   if(!isValidObjectId(playlistId)) {
+        throw new ApiError(400, "Invalid playlist id")
+    }
+    const playlist = await Playlist.findById(playlistId)
+    if(!playlist) {
+        throw new ApiError(404, "Playlist not found")
+    }
+    // here the bug fixed by copilot and the bug is no ownership checks. Explanation: Users could update playlists they don't own.
+    if(playlist.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to update this playlist")
+    }
+    if(!name && !description) {
+        throw new ApiError(400, "Name and description are required")
+    }
+    const updatedPlaylist = await Playlist.findByIdAndUpdate(
+        playlistId,
+        {
+            $set: {
+                name: name || playlist.name,
+                description: description || playlist.description
+            }
+        },
+        {new: true}
+    )
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200, 
+            updatedPlaylist, 
+            "Playlist updated successfully"
+        )
+    )
+})
+
+export {
+    createPlaylist,
+    getUserPlaylists,
+    getPlaylistById,
+    addVideoToPlaylist,
+    removeVideoFromPlaylist,
+    deletePlaylist,
+    updatePlaylist
+}
