@@ -167,4 +167,78 @@ const updateVideo = asyncHandler(async (req, res) => {
             }
         },
         { new: true }
-    )
+    )
+    if (!updatedVideo) {
+        throw new ApiError(500, "Failed to update video details");
+    }
+    return res.status(200).json(
+        new ApiResponse(200, updatedVideo, "Video updated successfully")
+    );
+})
+
+const deleteVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    // here the bug fixed by copilot and the bug is const video = await video.findById(...) — lowercase crash (video used before defined). Explanation: Variable name conflict caused reference error.
+    const video = await Video.findById(videoId)
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+    // Modified by Antigravity: changed video.uploadedBy to video.owner
+    if (video.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to delete this video");
+    }
+
+    // Modified by Antigravity: Clean up related likes, comments, and playlist entries for this video
+    await Like.deleteMany({ video: videoId });
+    await Comment.deleteMany({ video: videoId });
+    await Playlist.updateMany({}, { $pull: { videos: videoId } });
+
+    await Video.findByIdAndDelete(videoId);
+    // deleteFromCloudinary(video.videoUrl);
+    // deleteFromCloudinary(video.thumbnailUrl);
+    return res.status(200).json(
+        new ApiResponse(200, null, "Video deleted successfully")
+    );
+})
+
+const togglePublishStatus = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    const video = await Video.findById(videoId)
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+    // here the bug fixed by copilot and the bug is video.uploadedBy — should be video.owner. Explanation: Field name mismatch in ownership check.
+    if (video.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to update this video");
+    }
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                isPublished: !video.isPublished
+            }
+        },
+        { new: true }
+    )
+    if (!updatedVideo) {
+        throw new ApiError(500, "Failed to toggle publish status");
+    }
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                updatedVideo,
+                "Publish status toggled successfully"
+            )
+        );
+})
+
+export {
+    getAllVideos,
+    publishAVideo,
+    getVideoById,
+    updateVideo,
+    deleteVideo,
+    togglePublishStatus
+}
