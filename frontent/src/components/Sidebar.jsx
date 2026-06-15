@@ -153,3 +153,69 @@ const Sidebar = ({ isCollapsed, isDrawer, onCloseDrawer, onOpenAuth }) => {
               gap: isCollapsed ? '0' : '12px',
               justifyContent: isCollapsed ? 'center' : 'flex-start',
               padding: '12px',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--danger)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: '500',
+              fontSize: '14px',
+              transition: 'all var(--transition-fast)',
+            }}
+            title="Log Out"
+          >
+            <LogOut size={18} style={{ flexShrink: 0 }} />
+            {!isCollapsed && <span>Log Out</span>}
+          </button>
+        )}
+      </div>
+    </>
+  );
+
+  if (isDrawer) {
+    return (
+      <aside 
+        className="glass-panel" 
+        style={{
+          width: '240px',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          zIndex: 300,
+          padding: '24px 16px 16px 16px',
+          boxShadow: 'var(--shadow-lg)',
+          overflowY: 'auto'
+        }}
+      >
+        {sidebarContent}
+      </aside>
+    );
+  }
+
+  return (
+    <aside 
+      className="glass-panel sidebar-desktop" 
+      style={{
+        width: isCollapsed ? '70px' : '240px',
+        transition: 'width var(--transition-normal)',
+        display: 'flex',
+        flexDirection: 'column',
+        borderWidth: '0 1px 0 0',
+        height: 'calc(100vh - 70px)',
+        position: 'sticky',
+        top: '70px',
+        padding: '16px 10px',
+        overflowY: 'auto',
+        flexShrink: 0
+      }}
+    >
+      {sidebarContent}
+    </aside>
+  );
+};
+
+export default Sidebar;
