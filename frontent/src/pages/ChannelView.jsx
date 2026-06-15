@@ -154,3 +154,69 @@ const ChannelView = () => {
             <Info size={16} />
             <span>About Channel</span>
           </button>
+        </div>
+
+        {/* Tab Content */}
+        <div style={{ marginTop: '16px' }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+              <div style={{
+                width: '30px',
+                height: '30px',
+                border: '3px solid var(--border-color)',
+                borderTopColor: 'var(--primary)',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+            </div>
+          ) : activeSubTab === 'videos' ? (
+            publicVideos.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '60px 24px',
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)'
+              }}>
+                <Tv size={36} style={{ color: 'var(--text-muted)', marginBottom: '12px', display: 'inline-block' }} />
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>No Videos Uploaded</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Videos you publish will appear publicly on your channel page.</p>
+              </div>
+            ) : (
+              <div className="grid-feed">
+                {publicVideos.map(video => (
+                  <VideoCard key={video._id} video={video} />
+                ))}
+              </div>
+            )
+          ) : (
+            // About tab
+            <div className="glass-panel" style={{
+              padding: '24px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-secondary)',
+              fontSize: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div>
+                <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Description</strong>
+                <p>Welcome to {user.fullName}'s official channel. Stay tuned for exciting updates, tutorials, and posts!</p>
+              </div>
+              <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.03)', paddingTop: '12px' }}>
+                <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Stats</strong>
+                <p>Email: {user.email}</p>
+                <p>Member since: {new Date(user.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ChannelView;
