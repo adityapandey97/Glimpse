@@ -58,3 +58,64 @@ const VideoCard = ({ video }) => {
         e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.borderColor = 'var(--border-color)';
       }}
+    >
+      {/* Thumbnail Container */}
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000' }}>
+        <img
+          src={video.thumbnail}
+          alt={video.title}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+        {/* Play Icon Hover Overlay */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: 0,
+          transition: 'opacity var(--transition-fast)',
+        }}
+        className="play-overlay"
+        onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
+        >
+          <div style={{
+            background: 'var(--primary-glow)',
+            padding: '12px',
+            borderRadius: 'var(--radius-full)',
+            color: '#fff',
+            boxShadow: 'var(--shadow-glow)'
+          }}>
+            <Play size={24} fill="#fff" />
+          </div>
+        </div>
+
+        {/* Video Duration Badge */}
+        <div style={{
+          position: 'absolute',
+          bottom: '8px',
+          right: '8px',
+          background: 'rgba(0, 0, 0, 0.75)',
+          color: '#fff',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          fontSize: '11px',
+          fontWeight: '600',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          <Clock size={10} />
+          {formatDuration(duration)}
+        </div>
+      </div>
+
+      {/* Info Container */}
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flexGrow: 1, gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          {/* Channel Avatar */}
+          <img
+            src={owner.avatar || 'https://via.placeholder.com/32'}
+            alt={owner.username || 'user'}
