@@ -8,7 +8,9 @@ import {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvtar,
-    updateUsercoverImage
+    updateUsercoverImage,
+    // Modified by Antigravity: imported deleteUser controller
+    deleteUser
 } from "../controllers/user.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -24,53 +26,4 @@ router.route("/register").post(
             maxCount: 1 
         },
         { 
-            name: "coverImage", 
-            maxCount: 1 
-        }
-
-    // error resolved by copilot: corrected field name from "coverimage" to "coverImage" to match controller expectations and prevent undefined file access
-    ]),
-    registerUser
-);
-
-router.route("/login").post(
-    loginUser
-);
-
-router.route("/logout").post(
-    verifyJWT,
-    logoutUser
-);
-
-router.route("/refresh-token").post(
-    refreshAccessToken
-);
-
-router.route("/change-password").post(
-    verifyJWT,
-    changeCurrentPassword
-);
-
-router.route("/me").get(
-    verifyJWT,
-    getCurrentUser
-);
-
-router.route("/update-account-details").patch(
-    verifyJWT,
-    updateAccountDetails
-);
-
-router.route("/avatar").patch(
-    verifyJWT,
-    upload.single("avatar"),
-    updateUserAvtar
-);
-
-router.route("/cover-image").patch(
-    verifyJWT,
-    upload.single("coverImage"),
-    updateUsercoverImage
-);
-
-export default router ;
+            name: "coverImage", 
