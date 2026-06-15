@@ -11,7 +11,7 @@ import cleanupLocalFiles from "../utils/cleanup.js"
 import { ApiError } from "../utils/ApiError.js"
 import ApiResponse  from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
-import { cloudinaryupload } from "../utils/cloudinary.js"
+import { cloudinaryupload, deleteFromCloudinary } from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -103,11 +103,17 @@ const publishAVideo = asyncHandler(async (req, res) => {
             throw new ApiError(400, "Description is required");
         }
 
-        // here the bug fixed by copilot and the bug is req.files?.videoFile[0] — field name is videoFile in routes and videoFile may be missing. Explanation: Optional chaining must include the array access.
-        const videoLocalPath = req.files?.videoFile?.[0]?.path
+        const videoFileObject = req.files?.videoFile?.[0];
+        const videoLocalPath = videoFileObject?.path;
         if (!videoLocalPath) {
             throw new ApiError(400, "Video file is required");
         }
+
+        // Modified by Antigravity: Enforce max video limit of 10MB
+        if (videoFileObject.size && videoFileObject.size > 10 * 1024 * 1024) {
+            throw new ApiError(400, "Video file size exceeds the maximum limit of 10MB");
+        }
+
         const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path
         if (!thumbnailLocalPath) {
             throw new ApiError(400, "Thumbnail file is required")
@@ -121,13 +127,26 @@ const publishAVideo = asyncHandler(async (req, res) => {
         if (!thumbnail) {
             throw new ApiError(400, "Thumbnail file is required")
         }
+
+        // Modified by Antigravity: Enforce max duration limit of 5 minutes (300 seconds)
+        if (video.duration && video.duration > 300) {
+            // Clean up files uploaded to Cloudinary
+            if (video.public_id) {
+                await deleteFromCloudinary(video.public_id, "video");
+            }
+            if (thumbnail.public_id) {
+                await deleteFromCloudinary(thumbnail.public_id, "image");
+            }
+            throw new ApiError(400, "Video duration exceeds the maximum limit of 5 minutes (300 seconds)");
+        }
+
         // create video in the database
         const createdVideo = await Video.create({
             title,
             description,
-            // here the bug fixed by copilot and the bug is saved videoUrl, thumbnailUrl, uploadedBy — model fields are videoFile, thumbnail, owner. Explanation: Field name mismatch caused data to be saved in wrong fields.
             videoFile: video.url,
             thumbnail: thumbnail.url,
+            duration: video.duration || 0,
             owner: req.user._id
         })
         if (!createdVideo) {
