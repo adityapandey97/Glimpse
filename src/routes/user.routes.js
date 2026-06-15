@@ -55,4 +55,30 @@ router.route("/change-password").post(
 
 router.route("/me").get(
     verifyJWT,
-    getCurrentUser
+    getCurrentUser
+);
+
+router.route("/update-account-details").patch(
+    verifyJWT,
+    updateAccountDetails
+);
+
+router.route("/avatar").patch(
+    verifyJWT,
+    upload.single("avatar"),
+    updateUserAvtar
+);
+
+router.route("/cover-image").patch(
+    verifyJWT,
+    upload.single("coverImage"),
+    updateUsercoverImage
+);
+
+// Modified by Antigravity: registered user account deletion route
+router.route("/delete-account").delete(
+    verifyJWT,
+    deleteUser
+);
+
+export default router ;
