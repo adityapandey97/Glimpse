@@ -76,3 +76,81 @@ const CommentSection = ({ videoId }) => {
       }
     } catch (error) {
       alert(error.response?.data?.message || 'Error deleting comment');
+    }
+  };
+
+  return (
+    <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+      <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <MessageSquare size={18} />
+        <span>Comments ({comments.length})</span>
+      </h3>
+
+      {/* Write Comment */}
+      {user ? (
+        <form onSubmit={handleAddComment} style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+          <img
+            src={user.avatar}
+            alt="me"
+            style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-full)', objectFit: 'cover' }}
+          />
+          <div style={{ flexGrow: 1, position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Add a public comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="input-field"
+              style={{ borderRadius: 'var(--radius-full)', paddingRight: '46px' }}
+            />
+            <button type="submit" className="btn-icon" style={{
+              position: 'absolute',
+              right: '6px',
+              top: '6px',
+              color: 'var(--primary)'
+            }}>
+              <Send size={16} />
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div style={{
+          padding: '16px',
+          background: 'var(--bg-secondary)',
+          borderRadius: 'var(--radius-md)',
+          textAlign: 'center',
+          color: 'var(--text-secondary)',
+          fontSize: '14px',
+          marginBottom: '24px'
+        }}>
+          Please sign in to join the conversation.
+        </div>
+      )}
+
+      {/* Comments List */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-secondary)' }}>Loading comments...</div>
+      ) : comments.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '14px' }}>
+          No comments yet. Be the first to comment!
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {comments.map((comment) => {
+            const commentOwner = comment.commentby || {};
+            const isMyComment = user && commentOwner._id === user._id;
+
+            return (
+              <div key={comment._id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }} className="animate-fade">
+                <img
+                  src={commentOwner.avatar || 'https://via.placeholder.com/32'}
+                  alt={commentOwner.username}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: 'var(--radius-full)',
+                    objectFit: 'cover',
+                    border: '1px solid var(--border-color)'
+                  }}
+                />
+                
