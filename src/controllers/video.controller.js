@@ -5,6 +5,8 @@ import  Video  from "../models/video.models.js"
 import Like from "../models/like.models.js"
 import Comment from "../models/comment.models.js"
 import Playlist from "../models/playlist.models.js"
+// Modified by Antigravity: imported cleanup utility to clear local temp files
+import cleanupLocalFiles from "../utils/cleanup.js"
 // import { User } from "../models/user.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import ApiResponse  from "../utils/ApiResponse.js"
@@ -90,49 +92,55 @@ ApiResponse → custom structured JSON response bhejne ke liye
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
-    const { title, description } = req.body
-    
-    // Modified by Antigravity: Validate title and description fields are present
-    if (!title || title.trim() === "") {
-        throw new ApiError(400, "Title is required");
-    }
-    if (!description || description.trim() === "") {
-        throw new ApiError(400, "Description is required");
-    }
+    try {
+        const { title, description } = req.body
+        
+        // Modified by Antigravity: Validate title and description fields are present
+        if (!title || title.trim() === "") {
+            throw new ApiError(400, "Title is required");
+        }
+        if (!description || description.trim() === "") {
+            throw new ApiError(400, "Description is required");
+        }
 
-    // here the bug fixed by copilot and the bug is req.files?.videoFile[0] — field name is videoFile in routes and videoFile may be missing. Explanation: Optional chaining must include the array access.
-    const videoLocalPath = req.files?.videoFile?.[0]?.path
-    if (!videoLocalPath) {
-        throw new ApiError(400, "Video file is required");
+        // here the bug fixed by copilot and the bug is req.files?.videoFile[0] — field name is videoFile in routes and videoFile may be missing. Explanation: Optional chaining must include the array access.
+        const videoLocalPath = req.files?.videoFile?.[0]?.path
+        if (!videoLocalPath) {
+            throw new ApiError(400, "Video file is required");
+        }
+        const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path
+        if (!thumbnailLocalPath) {
+            throw new ApiError(400, "Thumbnail file is required")
+        }
+        // upload files to cloudinary and get the uploaded file urls
+        const video = await cloudinaryupload(videoLocalPath);
+        const thumbnail = await cloudinaryupload(thumbnailLocalPath);
+        if (!video) {
+            throw new ApiError(400, "Video file is required");
+        }
+        if (!thumbnail) {
+            throw new ApiError(400, "Thumbnail file is required")
+        }
+        // create video in the database
+        const createdVideo = await Video.create({
+            title,
+            description,
+            // here the bug fixed by copilot and the bug is saved videoUrl, thumbnailUrl, uploadedBy — model fields are videoFile, thumbnail, owner. Explanation: Field name mismatch caused data to be saved in wrong fields.
+            videoFile: video.url,
+            thumbnail: thumbnail.url,
+            owner: req.user._id
+        })
+        if (!createdVideo) {
+            throw new ApiError(500, "Something went wrong while publishing the video");
+        }
+        return res.status(201).json(
+            new ApiResponse(200, createdVideo, "Video published successfully")
+        );
+    } catch (error) {
+        // Modified by Antigravity: Cleanup local uploaded temp files on error
+        cleanupLocalFiles(req);
+        throw error;
     }
-    const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path
-    if (!thumbnailLocalPath) {
-        throw new ApiError(400, "Thumbnail file is required")
-    }
-    // upload files to cloudinary and get the uploaded file urls
-    const video = await cloudinaryupload(videoLocalPath);
-    const thumbnail = await cloudinaryupload(thumbnailLocalPath);
-    if (!video) {
-        throw new ApiError(400, "Video file is required");
-    }
-    if (!thumbnail) {
-        throw new ApiError(400, "Thumbnail file is required")
-    }
-    // create video in the database
-    const createdVideo = await Video.create({
-        title,
-        description,
-        // here the bug fixed by copilot and the bug is saved videoUrl, thumbnailUrl, uploadedBy — model fields are videoFile, thumbnail, owner. Explanation: Field name mismatch caused data to be saved in wrong fields.
-        videoFile: video.url,
-        thumbnail: thumbnail.url,
-        owner: req.user._id
-    })
-    if (!createdVideo) {
-        throw new ApiError(500, "Something went wrong while publishing the video");
-    }
-    return res.status(201).json(
-        new ApiResponse(200, createdVideo, "Video published successfully")
-    );
 })
 
 const getVideoById = asyncHandler(async (req, res) => {

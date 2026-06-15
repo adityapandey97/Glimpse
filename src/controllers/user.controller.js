@@ -2,6 +2,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/user.models.js";
+// Modified by Antigravity: imported cleanup utility to clear local temp files
+import cleanupLocalFiles from "../utils/cleanup.js";
 // Modified by Antigravity: imported related models for user account deletion cascading cleanup
 import Video from "../models/video.models.js";
 import Playlist from "../models/playlist.models.js";
@@ -16,95 +18,97 @@ import jwt from "jsonwebtoken";
 
 const registerUser = asyncHandler(async (req, res, next) => {
     // error resolved by copilot: controller functions were missing 'next' parameter, causing potential scope issues with Express middleware chain. Added 'next' to all asyncHandler-wrapped functions for proper middleware compatibility.
+    try {
+        // req.body contail data like text or json number boolean
+        // here we are destructuring the data from req.body
+        const { fullName, email, username, password } = req.body;
 
-    // req.body contail data like text or json number boolean
-    // here we are destructuring the data from req.body
-    const { fullName, email, username, password } = req.body;
-
-    // Debug logs
-    console.log("req.files:", req.files);
-    console.log("req.body:", req.body);
+        // Debug logs
+        console.log("req.files:", req.files);
+        console.log("req.body:", req.body);
 
 
-    // this is use to check all field are provided or not
-    // and using the apierror to throw the error with status code and message in the proper way we desing it in utils/apiError.js
-    if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
-        throw new ApiError(400, "All fields are required");
+        // this is use to check all field are provided or not
+        // and using the apierror to throw the error with status code and message in the proper way we desing it in utils/apiError.js
+        if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
+            throw new ApiError(400, "All fields are required");
+        }
+
+
+        // check if user with the same email or username already exists
+        // $or is a mongoDB operator to check multiple conditions(advanced query)
+        const existedUser = await User.findOne({
+            $or: [{ username }, { email }]
+        });
+        if (existedUser) {
+            throw new ApiError(409, "User with email or username already exists");
+        }
+
+
+        // ceck if files are uploaded
+        // as avtar is required so we go through this specif check but coverimage is not required so we dont need to check this in that manner but
+        // but still we can check if we want to store null or defauld vale to upload on cloudinary
+        const avatarLocalPath = req.files?.avatar?.[0]?.path;
+        // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+        let coverImageLocalPath = req.files?.coverImage?.[0]?.path;
+
+        // error resolved by copilot: improved file path access to prevent crashes when files are missing, using optional chaining for safer property access 
+
+        // required file so chek confiormly it was given or not  if not given then throw error
+        if (!avatarLocalPath) {
+            throw new ApiError(400, "Avatar file is required");
+        }
+
+
+
+        // upload files to cloudinary and get the uploaded file urls
+        // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
+        const avatar = await cloudinaryupload(avatarLocalPath);
+        const coverImage = coverImageLocalPath ? await cloudinaryupload(coverImageLocalPath) : null;
+
+        // error resolved by copilot: made cover image upload conditional to handle cases where cover image is not provided, preventing unnecessary cloudinary calls
+
+
+
+        // again check if avatar upload was successfull or not
+        if (!avatar) {
+            throw new ApiError(400, "Avatar file is required");
+        }
+
+
+        // as all data given perfectly so we create the user in the database
+        const user = await User.create({
+            fullName,
+            avatar: avatar.url,
+            coverImage: coverImage?.url || "",
+            email,
+            password,
+            username: username.toLowerCase(),
+        });
+
+
+
+
+
+        // fetch the created user without password and refreshToken fields to send in response
+        const createdUser = await User.findById(user._id).select("-password -refreshToken");
+
+
+        // if user creation failed then throw the error
+        if (!createdUser) {
+            throw new ApiError(500, "Something went wrong while registering the user");
+        }
+
+
+        // send success response with created user data
+        return res.status(201).json(
+            new ApiResponse(200, createdUser, "User registered successfully")
+        );
+    } catch (error) {
+        // Modified by Antigravity: Cleanup local uploaded temp files on error
+        cleanupLocalFiles(req);
+        throw error;
     }
-
-
-    // check if user with the same email or username already exists
-    // $or is a mongoDB operator to check multiple conditions(advanced query)
-    const existedUser = await User.findOne({
-        $or: [{ username }, { email }]
-    });
-    if (existedUser) {
-        throw new ApiError(409, "User with email or username already exists");
-    }
-
-
-    // ceck if files are uploaded
-    // as avtar is required so we go through this specif check but coverimage is not required so we dont need to check this in that manner but
-    // but still we can check if we want to store null or defauld vale to upload on cloudinary
-    const avatarLocalPath = req.files?.avatar?.[0]?.path;
-    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
-    let coverImageLocalPath = req.files?.coverImage?.[0]?.path;
-
-    // error resolved by copilot: improved file path access to prevent crashes when files are missing, using optional chaining for safer property access 
-
-    // required file so chek confiormly it was given or not  if not given then throw error
-    if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar file is required");
-    }
-
-
-
-    // upload files to cloudinary and get the uploaded file urls
-    // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
-    const avatar = await cloudinaryupload(avatarLocalPath);
-    const coverImage = coverImageLocalPath ? await cloudinaryupload(coverImageLocalPath) : null;
-
-    // error resolved by copilot: made cover image upload conditional to handle cases where cover image is not provided, preventing unnecessary cloudinary calls
-
-
-
-    // again check if avatar upload was successfull or not
-    if (!avatar) {
-        throw new ApiError(400, "Avatar file is required");
-    }
-
-
-    // as all data given perfectly so we create the user in the database
-    const user = await User.create({
-        fullName,
-        avatar: avatar.url,
-        coverImage: coverImage?.url || "",
-        email,
-        password,
-        username: username.toLowerCase(),
-    });
-
-
-
-
-
-    // fetch the created user without password and refreshToken fields to send in response
-    const createdUser = await User.findById(user._id).select("-password -refreshToken");
-
-
-    // if user creation failed then throw the error
-    if (!createdUser) {
-        throw new ApiError(500, "Something went wrong while registering the user");
-    }
-
-
-    // send success response with created user data
-    return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered successfully")
-    );
-
-
-
 });
 
 const genrateAccessAndRefreshToken = async (userId)=>
@@ -327,64 +331,74 @@ const updateAccountDetails = asyncHandler(async(req,res, next)=>{
 })
 
 const updateUserAvtar = asyncHandler(async(req,res, next)=>{
-    const avatarLocalPath = req.file?.path
+    try {
+        const avatarLocalPath = req.file?.path
 
-    if(!avatarLocalPath){
-        throw new ApiError(400 , "avatar not found in local path")
+        if(!avatarLocalPath){
+            throw new ApiError(400 , "avatar not found in local path")
+        }
+
+        // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
+        const avatar = await cloudinaryupload(avatarLocalPath)
+
+        if(!avatar.url){
+            throw new ApiError(400, "not uploaded on cloud")
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.user?._id,
+            {
+                $set:{
+                    avatar:avatar.url
+                }
+            },
+            {new : true}
+        ).select("-password")
+
+        return res
+        .status(200)
+        .json(new ApiResponse( 200 ,user,"update avatar successfully"))
+    } catch (error) {
+        // Modified by Antigravity: Cleanup local uploaded temp files on error
+        cleanupLocalFiles(req);
+        throw error;
     }
-
-    // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
-    const avatar = await cloudinaryupload(avatarLocalPath)
-
-    if(!avatar.url){
-        throw new ApiError(400, "not uploaded on cloud")
-    }
-
-    const user = await User.findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set:{
-                avatar:avatar.url
-            }
-        },
-        {new : true}
-    ).select("-password")
-
-    return res
-    .status(200)
-    .json(new ApiResponse( 200 ,user,"update avatar successfully"))
-
 })
 
 
 const updateUsercoverImage = asyncHandler(async(req,res, next)=>{
-    const coverImageLocalPath = req.file?.path
+    try {
+        const coverImageLocalPath = req.file?.path
 
-    if(!coverImageLocalPath){
-        throw new ApiError(400 , "avatar not found in local path")
+        if(!coverImageLocalPath){
+            throw new ApiError(400 , "avatar not found in local path")
+        }
+
+        // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
+        const coverImage = await cloudinaryupload(coverImageLocalPath)
+
+        if(!coverImage.url){
+            throw new ApiError(400, "not uploaded on cloud")
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.user?._id,
+            {
+                $set:{
+                    coverImage:coverImage.url
+                }
+            },
+            {new : true}
+        ).select("-password")
+
+        return res
+        .status(200)
+        .json(new ApiResponse( 200 ,user,"update coverImage successfully"))
+    } catch (error) {
+        // Modified by Antigravity: Cleanup local uploaded temp files on error
+        cleanupLocalFiles(req);
+        throw error;
     }
-
-    // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
-    const coverImage = await cloudinaryupload(coverImageLocalPath)
-
-    if(!coverImage.url){
-        throw new ApiError(400, "not uploaded on cloud")
-    }
-
-    const user = await User.findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set:{
-                coverImage:coverImage.url
-            }
-        },
-        {new : true}
-    ).select("-password")
-
-    return res
-    .status(200)
-    .json(new ApiResponse( 200 ,user,"update coverImage successfully"))
-
 })
 
 const deleteUser = asyncHandler(async (req, res, next) => {
