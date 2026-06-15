@@ -75,3 +75,36 @@ export const AppProvider = ({ children }) => {
       console.error('Logout error', error);
     } finally {
       setUser(null);
+      setActiveTab('home');
+      setActiveVideoId(null);
+    }
+  };
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  return (
+    <AppContext.Provider
+      value={{
+        user,
+        setUser,
+        loadingUser,
+        checkAuth,
+        theme,
+        toggleTheme,
+        searchQuery,
+        setSearchQuery,
+        activeTab,
+        setActiveTab,
+        activeVideoId,
+        setActiveVideoId,
+        login,
+        register,
+        logout,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
+};
