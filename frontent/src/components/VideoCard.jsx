@@ -119,3 +119,54 @@ const VideoCard = ({ video }) => {
           <img
             src={owner.avatar || 'https://via.placeholder.com/32'}
             alt={owner.username || 'user'}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: 'var(--radius-full)',
+              objectFit: 'cover',
+              border: '1px solid var(--border-color)',
+              flexShrink: 0
+            }}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <h3 style={{
+              fontSize: '15px',
+              fontWeight: '600',
+              lineHeight: '1.3',
+              color: 'var(--text-primary)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              marginBottom: '4px'
+            }} title={video.title}>
+              {video.title}
+            </h3>
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+              {owner.fullName || 'Channel Creator'}
+            </span>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginTop: 'auto',
+          fontSize: '12px',
+          color: 'var(--text-muted)',
+          paddingTop: '8px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.03)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Eye size={13} />
+            <span>{views} views</span>
+          </div>
+          <span>{formatTimeAgo(video.createdAt)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default VideoCard;
