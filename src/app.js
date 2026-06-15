@@ -1,9 +1,9 @@
 // here the bug fixed by copilot and the bug is import CookieParser — wrong casing (should be cookieParser). Explanation: Module names are case-sensitive.
 import cookieParser from "cookie-parser";
-
 import cors from "cors"
-
 import express from "express"
+// Modified by Antigravity: Import mongoose to check connection status in middleware
+import mongoose from "mongoose";
 const app  = express();
 
 //USE TO HANDLE CROSS ORGIN ERROR IN THE BROWSER TO ALLOW THE FRONTEND TO READ THE BACKENG OR LISITEN ON SERVER
@@ -27,7 +27,20 @@ app.use(express.static('public'))
 //it reads cookies from the browser request and converts them into a JavaScript object.
 app.use(cookieParser())
 
-
+// Modified by Antigravity: Intercept requests when MongoDB is offline and return a clean 503 error
+app.use((req, res, next) => {
+    // Skip db check for healthcheck route
+    if (req.path.startsWith('/api/v1/healthcheck')) {
+        return next();
+    }
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            success: false,
+            message: "Database connection is offline. Operating in fallback mode."
+        });
+    }
+    next();
+});
 
 // routes import
 import userRouter from "./routes/user.routes.js"
