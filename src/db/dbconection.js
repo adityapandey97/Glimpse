@@ -6,7 +6,8 @@ const dbconect=async()=>{
         console.log(`\n mongodb conected!!:DB HOST:${conectioninstanse.connection.host}`);
     }catch(error){
         console.log("database conection get failed",error);
-        process.exit(1)
+        // Modified by Antigravity: Throw error instead of process.exit(1) to support fallback startup
+        throw error;
     }
 }
 export default dbconect;
