@@ -158,4 +158,166 @@ const loginUser = asyncHandler(async (req, res, next) => {
     const loogedInUser = await User.findById(user._id).select("-password -refreshToken");
      
     const  options ={
-        // here the bug fixed by copilot and the bug is httpsonly: true — should be httpOnly: true (cookies not protected!). Explanation: Incorrect property name meant cookies were not properly secured against client-side access.
+        // here the bug fixed by copilot and the bug is httpsonly: true — should be httpOnly: true (cookies not protected!). Explanation: Incorrect property name meant cookies were not properly secured against client-side access.
+        httpOnly:true,
+        secure:true
+    }
+
+    
+    
+    return res
+    .status(200)
+    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, options)
+    .json(
+        new ApiResponse(200, {
+            user:loogedInUser, 
+            accessToken, 
+            refreshToken
+        },
+        
+    "User logged in successfully")
+    );
+
+
+
+
+});
+
+
+const logoutUser = asyncHandler(async (req, res, next) => {
+
+ await User.findByIdAndUpdate(
+    req.user._id, 
+    {
+       $set: { 
+            refreshToken: null
+       }
+    },
+    {
+        new:true
+    }
+);
+
+
+const  options ={
+        // here the bug fixed by copilot and the bug is httpsonly: true — should be httpOnly: true (cookies not protected!). Explanation: Incorrect property name meant cookies were not properly secured against client-side access.
+        httpOnly:true,
+        secure:true
+    }
+
+
+
+return res
+.status(200)
+.clearCookie("refreshToken", options)
+.clearCookie("accessToken", options)
+.json(
+    new ApiResponse(200, {}, "User logged out successfully")
+);
+
+
+
+});
+
+const refreshAccessToken = asyncHandler(async (req, res, next) => {
+    try {
+        // here the bug fixed by copilot and the bug is req.cookie.refreshToken — should be req.cookies.refreshToken (plural). Explanation: Cookies are stored in req.cookies, not req.cookie, causing undefined token access.
+        const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+    
+        if(!incomingRefreshToken){
+            throw new ApiError(401,"Invalid request, refresh token is missing");
+        }
+    
+        // here the bug fixed by copilot and the bug is jwt.verify(...) return value never captured into decodedToken. Explanation: The decoded payload was not stored, causing decodedToken to be undefined in subsequent lines.
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        )
+    
+        const user = await User.findById(decodedToken._id)
+        if(!user){
+            throw new ApiError(401,"user not found with this token");
+        }
+    
+        if(user.refreshToken !== incomingRefreshToken){
+            throw new ApiError(401,"refresh token is invalid or expired");
+        }
+    
+        const {accessToken, refreshToken} = await genrateAccessAndRefreshToken(user._id);
+    
+        const  options ={
+            // here the bug fixed by copilot and the bug is httpsonly: true — should be httpOnly: true (cookies not protected!). Explanation: Incorrect property name meant cookies were not properly secured against client-side access.
+            httpOnly:true,
+            secure:true 
+        }
+    
+        return res
+        .status(200) 
+        .cookie("refreshToken", refreshToken, options)
+        .cookie("accessToken", accessToken, options)
+        .json(
+            new ApiResponse(200, {
+                accessToken,
+                refreshToken
+            },
+            
+        "Refresh token generated successfully")
+        );
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token");
+    }
+
+})
+
+const changeCurrentPassword = asyncHandler(async(req,res, next)=>{
+    const {oldPassword , newPassword} = req.body
+
+    const user = await User.findById(req.user?._id)
+
+    // Modified by Antigravity: changed user.isPasswordCorrect to user.isPasswordMatched to match the schema methods
+    const isPasswordCorrect = await user.isPasswordMatched(oldPassword)
+
+    if(!isPasswordCorrect){
+        throw new ApiError(400, "Invalid old Password")
+    
+    }
+
+    user.password=newPassword
+    await user.save({validateBeforeSave:false })
+
+    return res 
+    .status(200)
+    .json(new ApiResponse(200, {}, "password reset successfully"))
+
+
+})
+
+const getCurrentUser = asyncHandler(async(req,res, next)=>{
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "current user fetched successfully"))
+})
+
+const updateAccountDetails = asyncHandler(async(req,res, next)=>{
+    const {fullName,email}=req.body
+
+    if(!fullName || !email){
+        throw new ApiError(400,"ALL feilds are required")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                fullName:fullName,
+                email:email
+            }
+        },
+        {
+            new:true
+        }
+    ).select("-password")
+
+    return res
