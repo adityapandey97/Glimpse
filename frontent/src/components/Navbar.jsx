@@ -110,3 +110,50 @@ const Navbar = ({ onOpenAuth, onOpenUpload, onToggleSidebar }) => {
                 style={{
                   width: '36px',
                   height: '36px',
+                  borderRadius: 'var(--radius-full)',
+                  objectFit: 'cover',
+                  border: '2px solid var(--primary)'
+                }}
+              />
+              <span style={{ fontSize: '14px', fontWeight: '500', display: 'none', md: 'block' }}>
+                @{user.username}
+              </span>
+            </div>
+
+            {/* Logout Button */}
+            <button onClick={logout} className="btn-icon" title="Logout" style={{ color: 'var(--danger)' }}>
+              <LogOut size={18} />
+            </button>
+          </>
+        ) : (
+          <button onClick={onOpenAuth} className="btn btn-primary" style={{ padding: '8px 20px', borderRadius: 'var(--radius-full)' }}>
+            <User size={16} />
+            <span>Sign In</span>
+          </button>
+        )}
+      </div>
+    </header>
+  );
+};
+
+// Modified by Antigravity: Injecting inline mobile media styles for header items
+const NavbarStyle = () => (
+  <style>{`
+    @media (max-width: 576px) {
+      .nav-logo-text {
+        display: none !important;
+      }
+      .search-form {
+        max-width: 140px !important;
+        margin: 0 4px !important;
+      }
+    }
+  `}</style>
+);
+
+export default (props) => (
+  <>
+    <NavbarStyle />
+    <Navbar {...props} />
+  </>
+);
