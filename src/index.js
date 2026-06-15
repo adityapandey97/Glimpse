@@ -3,8 +3,8 @@ import dbconect from "./db/dbconection.js";
 import {app} from "./app.js";
 
 
-dotenv .config({
-    path:'./env'
+dotenv.config({
+    path:'./.env'
 })
 
 
