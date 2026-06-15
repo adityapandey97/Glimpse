@@ -122,3 +122,128 @@ const VideoPlayer = () => {
       <div style={{ padding: '24px', textAlign: 'center', flexGrow: 1 }}>
         <h3 style={{ color: 'var(--danger)' }}>Video not found or deleted</h3>
         <button onClick={() => setActiveVideoId(null)} className="btn btn-secondary" style={{ marginTop: '16px' }}>
+          Back to Home
+        </button>
+      </div>
+    );
+  }
+
+  const views = typeof video.views === 'number' ? video.views : (video.views?.length || 0);
+  const owner = video.owner || {};
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '24px',
+      padding: '24px',
+      flexGrow: 1,
+      overflowY: 'auto',
+      maxWidth: '1400px',
+      margin: '0 auto',
+      width: '100%'
+    }} className="animate-fade">
+      {/* Back Button */}
+      <div>
+        <button onClick={() => setActiveVideoId(null)} className="btn btn-secondary" style={{ borderRadius: 'var(--radius-full)', padding: '6px 16px' }}>
+          <ArrowLeft size={16} />
+          <span>Back to Feed</span>
+        </button>
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gap: '24px',
+        width: '100%',
+        alignItems: 'flex-start',
+        // Desktop breakpoint style
+        '@media (min-width: 992px)': {
+          gridTemplateColumns: '2fr 1fr'
+        }
+      }}
+      className="video-detail-grid"
+      >
+        {/* Main Video & Content Area */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {/* Video Player */}
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '16/9',
+            background: '#000',
+            borderRadius: 'var(--radius-md)',
+            overflow: 'hidden',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-md)'
+          }}>
+            <video
+              src={video.videoFile}
+              controls
+              autoPlay
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          </div>
+
+          {/* Title */}
+          <h1 style={{ fontSize: '22px', fontWeight: '700', marginTop: '16px', color: 'var(--text-primary)' }}>
+            {video.title}
+          </h1>
+
+          {/* Metadata & Actions Panel */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '16px',
+            marginTop: '12px',
+            paddingBottom: '16px',
+            borderBottom: '1px solid var(--border-color)'
+          }}>
+            {/* Uploader Channel Info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img
+                src={owner.avatar || 'https://via.placeholder.com/40'}
+                alt={owner.username}
+                style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-full)', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {owner.fullName || 'Channel'}
+                  <Sparkles size={12} style={{ color: 'var(--accent)' }} />
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  {subscribersCount} subscribers
+                </span>
+              </div>
+
+              {/* Subscribe button */}
+              {user && owner._id !== user._id && (
+                <button
+                  onClick={handleToggleSubscription}
+                  className={isSubscribed ? 'btn btn-secondary' : 'btn btn-primary'}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '12px',
+                    marginLeft: '12px'
+                  }}
+                >
+                  {isSubscribed ? <UserMinus size={14} /> : <UserPlus size={14} />}
+                  <span>{isSubscribed ? 'Subscribed' : 'Subscribe'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Like, Share, and Metrics */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleToggleLike}
+                className={isLiked ? 'btn btn-primary' : 'btn btn-secondary'}
+                style={{ borderRadius: 'var(--radius-full)', padding: '8px 18px', fontSize: '13px' }}
+              >
+                <ThumbsUp size={16} fill={isLiked ? '#fff' : 'none'} />
+                <span>{isLiked ? 'Liked' : 'Like'}</span>
+              </button>
+            </div>
