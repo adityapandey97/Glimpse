@@ -53,3 +53,60 @@ const Navbar = ({ onOpenAuth, onOpenUpload, onToggleSidebar }) => {
           </span>
         </div>
       </div>
+
+      {/* Middle: Search */}
+      <form onSubmit={handleSearchSubmit} className="search-form" style={{
+        display: 'flex',
+        alignItems: 'center',
+        position: 'relative',
+        width: '100%',
+        maxWidth: '450px',
+        margin: '0 16px',
+        transition: 'max-width var(--transition-normal)'
+      }}>
+        <input
+          type="text"
+          placeholder="Search videos, creators..."
+          value={localSearch}
+          onChange={(e) => setLocalSearch(e.target.value)}
+          className="input-field"
+          style={{ paddingRight: '46px', borderRadius: 'var(--radius-full)' }}
+        />
+        <button type="submit" className="btn-icon" style={{
+          position: 'absolute',
+          right: '8px',
+          padding: '6px',
+          background: 'transparent',
+          color: 'var(--text-secondary)'
+        }}>
+          <Search size={18} />
+        </button>
+      </form>
+
+      {/* Right side: Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {/* Theme Toggler */}
+        <button onClick={toggleTheme} className="btn-icon" title="Toggle Theme">
+          {theme === 'dark' ? <Sun size={20} style={{ color: 'var(--warning)' }} /> : <Moon size={20} />}
+        </button>
+
+        {user ? (
+          <>
+            {/* Upload Button */}
+            <button 
+              onClick={onOpenUpload} 
+              className="btn btn-primary" 
+              style={{ padding: '8px 16px', borderRadius: 'var(--radius-full)', fontSize: '13px' }}
+            >
+              <Upload size={16} />
+              <span>Upload</span>
+            </button>
+
+            {/* Profile Avatar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <img
+                src={user.avatar}
+                alt={user.username}
+                style={{
+                  width: '36px',
+                  height: '36px',
