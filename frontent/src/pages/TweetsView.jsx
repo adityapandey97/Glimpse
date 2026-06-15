@@ -101,3 +101,106 @@ const TweetsView = () => {
   const handleDeleteTweet = async (tweetId) => {
     if (!window.confirm('Delete this tweet?')) return;
     try {
+      const res = await axios.delete(`/api/v1/tweets/${tweetId}`);
+      if (res.data?.success) {
+        fetchTweets();
+      }
+    } catch (error) {
+      alert('Failed to delete tweet');
+    }
+  };
+
+  return (
+    <div style={{ flexGrow: 1, padding: '24px', overflowY: 'auto', maxWidth: '650px', margin: '0 auto', width: '100%' }} className="animate-fade">
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
+        <MessageSquare size={24} style={{ color: 'var(--primary)' }} />
+        <h2 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+          Social Timeline
+        </h2>
+      </div>
+
+      {/* Write Post */}
+      {user ? (
+        <form onSubmit={handleAddTweet} className="glass-panel" style={{
+          padding: '20px',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-color)',
+          marginBottom: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+            <img
+              src={user.avatar}
+              alt=""
+              style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-full)', objectFit: 'cover' }}
+            />
+            <textarea
+              placeholder="Share your thoughts or announcements with the community..."
+              value={newTweet}
+              onChange={(e) => setNewTweet(e.target.value)}
+              className="input-field"
+              maxLength={280}
+              style={{ border: 'none', background: 'transparent', minHeight: '80px', padding: '4px', resize: 'none', fontSize: '15px' }}
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {280 - newTweet.length} characters remaining
+            </span>
+            <button type="submit" className="btn btn-primary" style={{ padding: '6px 16px', borderRadius: 'var(--radius-full)', fontSize: '13px' }}>
+              <Send size={14} />
+              <span>Post</span>
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div style={{
+          padding: '20px',
+          background: 'var(--bg-secondary)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-color)',
+          textAlign: 'center',
+          color: 'var(--text-secondary)',
+          fontSize: '14px',
+          marginBottom: '24px'
+        }}>
+          Please sign in to write announcements or posts. Showing community posts.
+        </div>
+      )}
+
+      {/* Tweets List */}
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
+          <div style={{
+            width: '30px',
+            height: '30px',
+            border: '3px solid var(--border-color)',
+            borderTopColor: 'var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+        </div>
+      ) : tweets.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '14px' }}>
+          No posts in the timeline yet. Be the first to share!
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {tweets.map((tweet) => {
+            const tweetOwner = tweet.owner || {};
+            const isMyTweet = user && tweetOwner._id === user._id;
+
+            return (
+              <div 
+                key={tweet._id} 
+                className="glass-panel animate-fade" 
+                style={{
+                  padding: '20px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  gap: '14px'
+                }}
