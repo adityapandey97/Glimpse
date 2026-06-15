@@ -3,6 +3,8 @@ import axios from 'axios';
 
 // Configure axios defaults to send credentials/cookies automatically
 axios.defaults.withCredentials = true;
+// Modified by Antigravity: Set base URL dynamically from environment variable for deployment flexibility
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || '';
 
 export const AppContext = createContext();
 
