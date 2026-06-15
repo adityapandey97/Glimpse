@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose, { isValidObjectId } from "mongoose"
 import Comment from "../models/comment.models.js"
 import {ApiError} from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
@@ -45,7 +45,8 @@ const getVideoComments = asyncHandler(async (req, res) => {
         .sort({ createdAt: -1 }) // latest comments first
         .skip((pageNumber - 1) * limitNumber)
         .limit(limitNumber)
-        .populate("owner", "fullName avatar username") // comment owner details
+        // Modified by Antigravity: changed field from owner to commentby to match the schema
+        .populate("commentby", "fullName avatar username") // comment owner details
         .lean()
 
     // Count total comments for pagination
@@ -69,14 +70,15 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
 const addComment = asyncHandler(async (req, res) => {
     const {videoId} = req.params
-    const {text} = req.body
-    if (!text) {
-        throw new ApiError(400, "Comment text is required");
+    // Modified by Antigravity: changed text to content to match comment.models.js schema
+    const {content} = req.body
+    if (!content) {
+        throw new ApiError(400, "Comment content is required");
     }
     const comment = await Comment.create({
-        text,
+        content,
         video: videoId,
-        owner: req.user._id
+        commentby: req.user._id
     })
     if (!comment) {
         throw new ApiError(500, "Failed to add comment");
@@ -88,23 +90,25 @@ const addComment = asyncHandler(async (req, res) => {
 
 const updateComment = asyncHandler(async (req, res) => {
     const {commentId} = req.params
-    const {text} = req.body
-    if (!text) {
-        throw new ApiError(400, "Comment text is required");
+    // Modified by Antigravity: changed text to content, and rewrote update logic to correctly check ownership and perform the update
+    const {content} = req.body
+    if (!content) {
+        throw new ApiError(400, "Comment content is required");
     }
-    const comment = await Comment.findByIdAndUpdate(
-        commentId,
-        {owner: req.user._id},
-        {$set: {text}},
-        {new: true}
-    )
+    const comment = await Comment.findById(commentId)
     if (!comment) {
-        throw new ApiError(404, "Comment not found or unauthorized");
+        throw new ApiError(404, "Comment not found");
     }
+    if (comment.commentby.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to update this comment");
+    }
+    comment.content = content;
+    const updatedComment = await comment.save();
+    
     return res
         .status(200)
         .json(
-            new ApiResponse(200, comment, "Comment updated successfully")
+            new ApiResponse(200, updatedComment, "Comment updated successfully")
         );
 })
 
@@ -118,7 +122,8 @@ const deleteComment = asyncHandler(async (req, res) => {
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }
-    if (comment.owner.toString() !== req.user._id.toString()) {
+    // Modified by Antigravity: changed comment.owner to comment.commentby to match schema
+    if (comment.commentby.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not authorized to delete this comment");
     }
     const deletedComment = await Comment.findByIdAndDelete(commentId)

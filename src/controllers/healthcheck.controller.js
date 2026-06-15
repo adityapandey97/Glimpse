@@ -8,7 +8,8 @@ const healthcheck = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(
-            new ApiResponse(200,"OK")
+            // Modified by Antigravity: corrected constructor arguments to match (statusCode, data, message) format
+            new ApiResponse(200, {}, "OK")
         )
 })
 

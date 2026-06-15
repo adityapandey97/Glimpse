@@ -55,7 +55,8 @@ ApiResponse → custom structured JSON response bhejne ke liye
         if (!isValidObjectId(userId)) {
             throw new ApiError(400, "Invalid userId");
         }
-        filter.uploadedBy = userId;
+        // Modified by Antigravity: changed filter.uploadedBy to filter.owner to match the schema field
+        filter.owner = userId;
     }
     let sortOptions = {}
     if (sortBy && sortType) {   
@@ -65,7 +66,8 @@ ApiResponse → custom structured JSON response bhejne ke liye
     .sort(sortOptions)
     .skip((page - 1) * limit)
     .limit(limit)
-    .populate("uploadedBy", "fullName avatar username")
+    // Modified by Antigravity: changed population field from uploadedBy to owner
+    .populate("owner", "fullName avatar username")
     const totalVideos = await Video.countDocuments(filter)
     const totalPages = Math.ceil(totalVideos / limit)
     return res
@@ -86,8 +88,8 @@ ApiResponse → custom structured JSON response bhejne ke liye
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body
     
-    // here the bug fixed by copilot and the bug is req.files?.video[0] — field name is videoFile in routes. Explanation: Field name mismatch caused undefined file access.
-    const videoLocalPath = req.files?.videoFile[0]?.path
+    // here the bug fixed by copilot and the bug is req.files?.videoFile[0] — field name is videoFile in routes and videoFile may be missing. Explanation: Optional chaining must include the array access.
+    const videoLocalPath = req.files?.videoFile?.[0]?.path
     if (!videoLocalPath) {
         throw new ApiError(400, "Video file is required");
     }
@@ -96,8 +98,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Thumbnail file is required")
     }
     // upload files to cloudinary and get the uploaded file urls
-    const video = await uploadOnCloudinary(videoLocalPath);
-    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+    const video = await cloudinaryupload(videoLocalPath);
+    const thumbnail = await cloudinaryupload(thumbnailLocalPath);
     if (!video) {
         throw new ApiError(400, "Video file is required");
     }
@@ -169,7 +171,8 @@ const deleteVideo = asyncHandler(async (req, res) => {
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
-    if (video.uploadedBy.toString() !== req.user._id.toString()) {
+    // Modified by Antigravity: changed video.uploadedBy to video.owner
+    if (video.owner.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not authorized to delete this video");
     }
     await Video.findByIdAndDelete(videoId);

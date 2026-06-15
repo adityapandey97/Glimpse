@@ -9,9 +9,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     if(!isValidObjectId(videoId)){
         throw new ApiError(400,"Invalid videoId")
     }
-    const isLiked=await Like.findOne({video:videoId,owner:req.user._id})
+    // Modified by Antigravity: replaced owner with likedby to match schema
+    const isLiked=await Like.findOne({video:videoId,likedby:req.user._id})
     if(!isLiked){
-        await Like.create({video:videoId,owner:req.user._id})
+        await Like.create({video:videoId,likedby:req.user._id})
         return res.status(200).json(
             new ApiResponse(200,null,"Video liked successfully")
         )
@@ -29,9 +30,10 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     if(!isValidObjectId(commentId)){
         throw new ApiError(400,"Invalid commentId")
     }
-    const isLiked=await Like.findOne({comment:commentId,owner:req.user._id})
+    // Modified by Antigravity: replaced owner with likedby to match schema
+    const isLiked=await Like.findOne({comment:commentId,likedby:req.user._id})
     if(!isLiked){
-        await Like.create({comment:commentId,owner:req.user._id})
+        await Like.create({comment:commentId,likedby:req.user._id})
         return res.status(200).json(
             new ApiResponse(200,null,"Comment liked successfully")
         )
@@ -50,9 +52,10 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
     if(!isValidObjectId(tweetId)){
         throw new ApiError(400,"Invalid tweetId")
     }
-    const isLiked=await Like.findOne({tweet:tweetId,owner:req.user._id})
+    // Modified by Antigravity: replaced owner with likedby to match schema
+    const isLiked=await Like.findOne({tweet:tweetId,likedby:req.user._id})
     if(!isLiked){
-        await Like.create({tweet:tweetId,owner:req.user._id})
+        await Like.create({tweet:tweetId,likedby:req.user._id})
         return res.status(200).json(
             new ApiResponse(200,null,"Tweet liked successfully")
         )
@@ -67,12 +70,17 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 )
 //not completed yet
 const getLikedVideos = asyncHandler(async (req, res) => {
-    //need of pipeline and populate in mongoose
-    const likedVideos = await Like.findOne({owner:req.user._id}).populate("video")
+    // Modified by Antigravity: replaced owner with likedby, and findOne with find to get all liked videos
+    const likedVideosList = await Like.find({
+        likedby: req.user._id,
+        video: { $exists: true, $ne: null }
+    }).populate("video")
+    
+    const videos = likedVideosList.map(like => like.video).filter(Boolean)
+    
     return res.status(200).json(
-        new ApiResponse(200,likedVideos?.video || [],"Liked videos fetched successfully")
+        new ApiResponse(200, videos, "Liked videos fetched successfully")
     )
-    //TODO: get all liked videos
 })
 
 export {

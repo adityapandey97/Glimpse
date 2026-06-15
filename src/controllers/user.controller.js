@@ -268,6 +268,7 @@ const changeCurrentPassword = asyncHandler(async(req,res, next)=>{
 
     const user = await User.findById(req.user?._id)
 
+    // Modified by Antigravity: changed user.isPasswordCorrect to user.isPasswordMatched to match the schema methods
     const isPasswordCorrect = await user.isPasswordMatched(oldPassword)
 
     if(!isPasswordCorrect){

@@ -61,6 +61,10 @@ const updateTweet = asyncHandler(async (req, res) => {
     }
     // here the bug fixed by copilot and the bug is no authorization check on update/delete. Explanation: Users could update/delete tweets they don't own.
     const tweet = await Tweet.findById(tweetId)
+    // Modified by Antigravity: added verification that the tweet exists before checking owner property
+    if (!tweet) {
+        throw new ApiError(404, "Tweet not found")
+    }
     if(tweet.owner.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not authorized to update this tweet")
     }
