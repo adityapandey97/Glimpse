@@ -247,3 +247,110 @@ const VideoPlayer = () => {
                 <span>{isLiked ? 'Liked' : 'Like'}</span>
               </button>
             </div>
+          </div>
+
+          {/* Description Box */}
+          <div className="glass-panel" style={{
+            marginTop: '16px',
+            padding: '16px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            color: 'var(--text-secondary)'
+          }}>
+            <div style={{ display: 'flex', gap: '16px', color: 'var(--text-primary)', fontWeight: '600', marginBottom: '8px', fontSize: '13px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Eye size={14} /> {views} views
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Calendar size={14} /> Published {new Date(video.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{video.description}</p>
+          </div>
+
+          {/* Comments */}
+          <CommentSection videoId={video._id} />
+        </div>
+
+        {/* Sidebar Recommended Column */}
+        <div className="recommendations-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
+            Recommended Videos
+          </h3>
+
+          {recommendations.length === 0 ? (
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No recommended videos found.</div>
+          ) : (
+            recommendations.map((rec) => {
+              const recOwner = rec.owner || {};
+              return (
+                <div
+                  key={rec._id}
+                  onClick={() => setActiveVideoId(rec._id)}
+                  style={{
+                    display: 'flex',
+                    gap: '12px',
+                    cursor: 'pointer',
+                    borderRadius: 'var(--radius-sm)',
+                    overflow: 'hidden',
+                    transition: 'opacity var(--transition-fast)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = 0.8}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = 1}
+                >
+                  {/* Small Thumbnail */}
+                  <div style={{ width: '120px', aspectRatio: '16/9', background: '#000', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+                    <img
+                      src={rec.thumbnail}
+                      alt={rec.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                  {/* Rec Info */}
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: 'var(--text-primary)',
+                      lineHeight: '1.2',
+                      marginBottom: '4px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {rec.title}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
+                      {recOwner.fullName || 'Creator'}
+                    </span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      {(typeof rec.views === 'number' ? rec.views : (rec.views?.length || 0))} views
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+      
+      {/* Styles for dynamic responsiveness */}
+      <style>{`
+        .video-detail-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+        @media (min-width: 992px) {
+          .video-detail-grid {
+            grid-template-columns: 2fr 1fr;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default VideoPlayer;
