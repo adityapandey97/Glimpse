@@ -118,3 +118,124 @@ function App() {
       {/* Top Navbar */}
       <Navbar 
         onOpenAuth={() => setShowAuthModal(true)} 
+        onOpenUpload={() => setShowUploadModal(true)} 
+        onToggleSidebar={() => {
+          if (isMobile) {
+            setShowDrawer(true);
+          } else {
+            setSidebarCollapsed(!sidebarCollapsed);
+          }
+        }}
+      />
+
+      {/* Main Layout Area */}
+      <div style={{ display: 'flex', flexGrow: 1, position: 'relative' }}>
+        {/* Sidebar (Desktop Mode) */}
+        {!isMobile && (
+          <Sidebar 
+            isCollapsed={sidebarCollapsed} 
+            onOpenAuth={() => setShowAuthModal(true)} 
+          />
+        )}
+
+        {/* Slide-in Drawer (Mobile Mode) */}
+        {isMobile && showDrawer && (
+          <>
+            {/* Backdrop */}
+            <div 
+              onClick={() => setShowDrawer(false)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0, 0, 0, 0.6)',
+                backdropFilter: 'blur(3px)',
+                zIndex: 250,
+                transition: 'opacity var(--transition-normal)'
+              }}
+            />
+            {/* Drawer */}
+            <Sidebar 
+              isCollapsed={false} 
+              isDrawer={true} 
+              onCloseDrawer={() => setShowDrawer(false)} 
+              onOpenAuth={() => setShowAuthModal(true)} 
+            />
+          </>
+        )}
+
+        {/* Content Container */}
+        <main style={{
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          height: 'calc(100vh - 70px)',
+          overflowY: 'auto',
+          paddingBottom: isMobile ? '80px' : '24px' // Extra space for mobile lower bottom bar
+        }}>
+          {renderContent()}
+        </main>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar (Lower Bar) */}
+      {isMobile && (
+        <nav className="glass-panel animate-fade" style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '65px',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          zIndex: 150,
+          borderWidth: '1px 0 0 0',
+          padding: '4px 8px',
+          boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.4)'
+        }}>
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  // Intercept guest click on auth-restricted mobile bar items
+                  if (item.requiresAuth && !user) {
+                    setShowAuthModal(true);
+                    return;
+                  }
+                  setActiveTab(item.id);
+                  setActiveVideoId(null);
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  transition: 'all var(--transition-fast)',
+                  fontFamily: 'var(--font-sans)'
+                }}
+              >
+                <Icon size={20} style={{ color: isActive ? 'var(--primary)' : 'var(--text-secondary)' }} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
+
+      {/* Modals Overlays */}
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
+      )}
+      {showUploadModal && (
