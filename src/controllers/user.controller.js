@@ -462,6 +462,164 @@ const deleteUser = asyncHandler(async (req, res, next) => {
         .json(new ApiResponse(200, {}, "User account and all associated data deleted successfully"));
 });
 
+const socialLoginOrRegister = asyncHandler(async (req, res, next) => {
+    const { username, email, fullName, avatar, provider, providerId } = req.body;
+
+    if (!provider || !providerId) {
+        throw new ApiError(400, "Provider and Provider ID are required");
+    }
+
+    // Check if user exists with matching social provider id
+    const providerIdField = `${provider}Id`;
+    let user = await User.findOne({ [providerIdField]: providerId });
+
+    // If not found by social ID, check by email
+    if (!user && email) {
+        user = await User.findOne({ email });
+        if (user) {
+            // Update user to link social account
+            user[providerIdField] = providerId;
+            user.provider = provider;
+            await user.save();
+        }
+    }
+
+    // If user still doesn't exist, register them
+    if (!user) {
+        let finalUsername = username ? username.toLowerCase().replace(/\s+/g, '') : `user_${providerId}`;
+        
+        // Ensure username is unique
+        let usernameExists = await User.findOne({ username: finalUsername });
+        while (usernameExists) {
+            finalUsername = `${finalUsername}_${Math.floor(100 + Math.random() * 900)}`;
+            usernameExists = await User.findOne({ username: finalUsername });
+        }
+
+        const finalEmail = email || `${finalUsername}@${provider}.com`;
+
+        user = await User.create({
+            username: finalUsername,
+            fullName: fullName || username || `Social User`,
+            email: finalEmail,
+            avatar: avatar || "https://via.placeholder.com/150",
+            provider,
+            [providerIdField]: providerId,
+            password: "" // password-less social login
+        });
+    }
+
+    const { accessToken, refreshToken } = await genrateAccessAndRefreshToken(user._id);
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    };
+
+    return res
+        .status(200)
+        .cookie("refreshToken", refreshToken, options)
+        .cookie("accessToken", accessToken, options)
+        .json(
+            new ApiResponse(200, {
+                user: loggedInUser,
+                accessToken,
+                refreshToken
+            }, "Social login successful")
+        );
+});
+
+const mobileLoginOrRegister = asyncHandler(async (req, res, next) => {
+    const { mobileNumber, fullName, username, avatar, password, action } = req.body;
+
+    if (!mobileNumber) {
+        throw new ApiError(400, "Mobile number is required");
+    }
+
+    let user = await User.findOne({ mobileNumber });
+
+    // OTP / Password-less Mobile login or signup simulation
+    if (action === "otp_login") {
+        if (!user) {
+            // Register a new mobile user automatically with verification code
+            let finalUsername = username ? username.toLowerCase().replace(/\s+/g, '') : `user_${mobileNumber.slice(-4)}`;
+            let usernameExists = await User.findOne({ username: finalUsername });
+            while (usernameExists) {
+                finalUsername = `${finalUsername}_${Math.floor(100 + Math.random() * 900)}`;
+                usernameExists = await User.findOne({ username: finalUsername });
+            }
+
+            user = await User.create({
+                username: finalUsername,
+                fullName: fullName || `Mobile User`,
+                email: `${mobileNumber}@glimpse.com`,
+                avatar: avatar || "https://via.placeholder.com/150",
+                provider: "mobile",
+                mobileNumber,
+                password: "" // password-less
+            });
+        }
+    } else {
+        // Standard password based mobile auth
+        if (action === "login") {
+            if (!user) {
+                throw new ApiError(404, "User with this mobile number does not exist");
+            }
+            const isPasswordCorrect = await user.isPasswordMatched(password);
+            if (!isPasswordCorrect) {
+                throw new ApiError(401, "Invalid password credentials");
+            }
+        } else if (action === "register") {
+            if (user) {
+                throw new ApiError(409, "User with this mobile number already exists");
+            }
+            if (!username || !fullName || !password) {
+                throw new ApiError(400, "All registration fields are required");
+            }
+
+            let finalUsername = username.toLowerCase().replace(/\s+/g, '');
+            let usernameExists = await User.findOne({ username: finalUsername });
+            if (usernameExists) {
+                throw new ApiError(409, "Username already taken");
+            }
+
+            user = await User.create({
+                username: finalUsername,
+                fullName,
+                email: `${mobileNumber}@glimpse.com`,
+                avatar: avatar || "https://via.placeholder.com/150",
+                provider: "mobile",
+                mobileNumber,
+                password
+            });
+        } else {
+            throw new ApiError(400, "Invalid auth action specified");
+        }
+    }
+
+    const { accessToken, refreshToken } = await genrateAccessAndRefreshToken(user._id);
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    };
+
+    return res
+        .status(200)
+        .cookie("refreshToken", refreshToken, options)
+        .cookie("accessToken", accessToken, options)
+        .json(
+            new ApiResponse(200, {
+                user: loggedInUser,
+                accessToken,
+                refreshToken
+            }, "Mobile authentication successful")
+        );
+});
+
 export { 
     registerUser, 
     loginUser, 
@@ -472,5 +630,7 @@ export {
     updateAccountDetails,
     updateUserAvtar,
     updateUsercoverImage,
-    deleteUser
+    deleteUser,
+    socialLoginOrRegister,
+    mobileLoginOrRegister
 };
