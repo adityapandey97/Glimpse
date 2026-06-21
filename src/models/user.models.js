@@ -50,7 +50,32 @@ const userSchema = new Schema({
     password: 
     { 
         type: String, 
-        required: true 
+        required: false 
+    },
+    mobileNumber:
+    {
+        type: String,
+        required: false
+    },
+    googleId:
+    {
+        type: String,
+        required: false
+    },
+    githubId:
+    {
+        type: String,
+        required: false
+    },
+    instagramId:
+    {
+        type: String,
+        required: false
+    },
+    provider:
+    {
+        type: String,
+        default: "local"
     },
     refreshToken:
     {
@@ -190,13 +215,14 @@ Together they create a complete secure login system.
 
 userSchema.pre("save", async function () {
     // error resolved by copilot: In Mongoose v6+, async pre-save hooks don't require next parameter or next() calls. Removed them to prevent "next is not a function" error.
-    if(!this.isModified("password")){
+    if(!this.isModified("password") || !this.password){
         return;
     }
     this.password = await bcrypt.hash(this.password,10)
     
 });
 userSchema.methods.isPasswordcorrect = async function (password) {
+    if (!this.password) return false;
     return await bcrypt.compare(password, this.password);
 }
 // here the bug fixed by copilot and the bug is controller called isPasswordMatched but model defined isPasswordcorrect. Explanation: This caused method not found errors when validating passwords.
