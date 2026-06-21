@@ -46,10 +46,10 @@ const Navbar = ({ onOpenAuth, onOpenUpload, onToggleSidebar }) => {
             fontWeight: 'bold',
             boxShadow: 'var(--shadow-glow)'
           }}>
-            C
+            G
           </div>
           <span className="gradient-text nav-logo-text" style={{ fontStyle: 'italic', fontWeight: '800', fontSize: '20px', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            ChaiPlay <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+            Glimpse <Sparkles size={14} style={{ color: 'var(--accent)' }} />
           </span>
         </div>
       </div>

@@ -123,7 +123,7 @@ const AuthModal = ({ onClose }) => {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <span className="gradient-text" style={{ fontStyle: 'italic', fontWeight: '800', fontSize: '24px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            ChaiPlay <Sparkles size={16} style={{ color: 'var(--accent)' }} />
+            Glimpse <Sparkles size={16} style={{ color: 'var(--accent)' }} />
           </span>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
             {isLogin ? 'Welcome back! Log in to continue.' : 'Create an account to start sharing.'}
