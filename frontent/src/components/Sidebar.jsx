@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Home, LayoutDashboard, Heart, MessageSquare, ListVideo, Tv, Settings, LogOut, X, User } from 'lucide-react';
+import { Home, LayoutDashboard, Heart, MessageSquare, MessageCircle, ListVideo, Tv, Settings, LogOut, X, User } from 'lucide-react';
 
 /* Modified by Antigravity: Premium Upper/Lower Sidebar with guest view capabilities & auth redirects */
 const Sidebar = ({ isCollapsed, isDrawer, onCloseDrawer, onOpenAuth }) => {
@@ -8,7 +8,8 @@ const Sidebar = ({ isCollapsed, isDrawer, onCloseDrawer, onOpenAuth }) => {
 
   const upperItems = [
     { id: 'home', label: 'Home Feed', icon: Home, requiresAuth: false },
-    { id: 'tweets', label: 'Tweets & Thoughts', icon: MessageSquare, requiresAuth: false },
+    { id: 'tweets', label: 'Tweets & Thoughts', icon: MessageCircle, requiresAuth: false },
+    { id: 'chat', label: 'Glimpse Chat', icon: MessageSquare, requiresAuth: true },
     { id: 'playlist', label: 'Your Playlists', icon: ListVideo, requiresAuth: true },
     { id: 'channel', label: 'Your Channel', icon: Tv, requiresAuth: true },
     { id: 'dashboard', label: 'Your Dashboard', icon: LayoutDashboard, requiresAuth: true },

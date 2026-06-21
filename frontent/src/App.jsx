@@ -9,11 +9,12 @@ import TweetsView from './pages/TweetsView';
 import PlaylistsView from './pages/PlaylistsView';
 import ChannelView from './pages/ChannelView';
 import SettingsView from './pages/SettingsView';
+import ChatView from './pages/ChatView';
 import AuthModal from './components/AuthModal';
 import UploadModal from './components/UploadModal';
 import VideoCard from './components/VideoCard';
 import axios from 'axios';
-import { Heart, Play, Home, MessageSquare, ListVideo, Tv, Settings, User } from 'lucide-react';
+import { Heart, Play, Home, MessageSquare, MessageCircle, ListVideo, Tv, Settings, User } from 'lucide-react';
 
 /* Modified by Antigravity: Fully Responsive App Layout with Mobile Bottom Navigation & Slide Drawer */
 function App() {
@@ -66,7 +67,7 @@ function App() {
           animation: 'spin 1s linear infinite'
         }}></div>
         <span style={{ fontSize: '14px', fontWeight: '500', letterSpacing: '0.5px' }} className="gradient-text">
-          ChaiPlay loading...
+          Glimpse loading...
         </span>
         <style>{`
           @keyframes spin {
@@ -89,6 +90,8 @@ function App() {
         return <HomeFeed />;
       case 'tweets':
         return <TweetsView />;
+      case 'chat':
+        return <ChatView />;
       case 'playlist':
         return <PlaylistsView />;
       case 'channel':
@@ -107,8 +110,8 @@ function App() {
   // Mobile navigation items are now identical for all users
   const mobileNavItems = [
     { id: 'home', label: 'Home', icon: Home, requiresAuth: false },
-    { id: 'tweets', label: 'Tweets', icon: MessageSquare, requiresAuth: false },
-    { id: 'playlist', label: 'Playlists', icon: ListVideo, requiresAuth: true },
+    { id: 'tweets', label: 'Tweets', icon: MessageCircle, requiresAuth: false },
+    { id: 'chat', label: 'Chat', icon: MessageSquare, requiresAuth: true },
     { id: 'channel', label: 'Profile', icon: Tv, requiresAuth: true },
     { id: 'settings', label: 'Settings', icon: Settings, requiresAuth: true },
   ];
