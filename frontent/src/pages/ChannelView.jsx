@@ -8,7 +8,7 @@ import { Tv, Info, Film, Sparkles } from 'lucide-react';
 const ChannelView = () => {
   const { user } = useContext(AppContext);
   const [videos, setVideos] = useState([]);
-  const [subscribersCount, setSubscribersCount] = useState(0);
+  const [followersCount, setFollowersCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState('videos'); // 'videos', 'about'
 
@@ -22,10 +22,10 @@ const ChannelView = () => {
         setVideos(vidsRes.data.data || []);
       }
 
-      // Fetch subscribers count
-      const subsRes = await axios.get(`/api/v1/subscriptions/c/${user._id}`);
+      // Fetch followers count
+      const subsRes = await axios.get(`/api/v1/follows/c/${user._id}`);
       if (subsRes.data?.success) {
-        setSubscribersCount(subsRes.data.data.length || 0);
+        setFollowersCount(subsRes.data.data.length || 0);
       }
     } catch (error) {
       console.error('Error loading channel profile', error);
@@ -100,7 +100,7 @@ const ChannelView = () => {
             </h2>
             <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>@{user.username}</span>
             <span style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: '500' }}>
-              {subscribersCount} subscribers • {publicVideos.length} public videos
+              {followersCount} followers • {publicVideos.length} public videos
             </span>
           </div>
         </div>

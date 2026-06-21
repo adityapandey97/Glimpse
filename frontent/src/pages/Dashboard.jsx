@@ -121,14 +121,14 @@ const Dashboard = () => {
             gap: '16px',
             marginBottom: '32px'
           }}>
-            {/* Total Subscribers */}
+            {/* Total Followers */}
             <div className="glass-panel" style={{ padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '16px' }}>
               {/* Modified by Antigravity: changed background from purple to orange */}
               <div style={{ padding: '10px', background: 'rgba(249, 115, 22, 0.1)', color: 'var(--primary)', borderRadius: 'var(--radius-sm)' }}>
                 <Users size={24} />
               </div>
               <div>
-                <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)' }}>Total Subscribers</span>
+                <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)' }}>Total Followers</span>
                 <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)' }}>{stats?.totalSubscribers || 0}</span>
               </div>
             </div>
