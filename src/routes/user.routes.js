@@ -9,8 +9,9 @@ import {
     updateAccountDetails,
     updateUserAvtar,
     updateUsercoverImage,
-    // Modified by Antigravity: imported deleteUser controller
-    deleteUser
+    deleteUser,
+    socialLoginOrRegister,
+    mobileLoginOrRegister
 } from "../controllers/user.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -80,5 +81,8 @@ router.route("/delete-account").delete(
     verifyJWT,
     deleteUser
 );
+
+router.route("/social-auth").post(socialLoginOrRegister);
+router.route("/mobile-auth").post(mobileLoginOrRegister);
 
 export default router ;
