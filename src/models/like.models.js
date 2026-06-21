@@ -21,6 +21,10 @@ const likeSchema = new mongoose.Schema(
             type:mongoose.Schema.Types.ObjectId,
             ref:"Video",
             required:false
+        },
+        emoji: {
+            type: String,
+            default: "👍"
         }
         
     }, {timestamps:true}
