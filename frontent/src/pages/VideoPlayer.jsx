@@ -13,8 +13,12 @@ const VideoPlayer = () => {
   
   // Interaction states
   const [isLiked, setIsLiked] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [subscribersCount, setSubscribersCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [userReaction, setUserReaction] = useState(null);
+  const [reactionsBreakdown, setReactionsBreakdown] = useState({ "👍": 0, "❤️": 0, "😂": 0, "😮": 0, "😢": 0, "😡": 0 });
+  const [totalLikesCount, setTotalLikesCount] = useState(0);
+  const [showEmojiBar, setShowEmojiBar] = useState(false);
 
   const fetchVideoDetails = async () => {
     if (!activeVideoId) return;
@@ -31,28 +35,33 @@ const VideoPlayer = () => {
           setRecommendations(allVids.filter(v => v._id !== activeVideoId));
         }
 
-        // Fetch channel subscribers count
+        // Fetch channel followers count
         const channelId = res.data.data.owner?._id;
         if (channelId) {
-          const subCountRes = await axios.get(`/api/v1/subscriptions/c/${channelId}`);
+          const subCountRes = await axios.get(`/api/v1/follows/c/${channelId}`);
           if (subCountRes.data?.success) {
-            setSubscribersCount(subCountRes.data.data.length || 0);
+            setFollowersCount(subCountRes.data.data.length || 0);
             
-            // Check if current user is subscribed
+            // Check if current user is following
             if (user) {
               const mySub = subCountRes.data.data.some(sub => sub.username === user.username);
-              setIsSubscribed(mySub);
+              setIsFollowing(mySub);
             }
           }
         }
 
-        // Check if current user has liked this video
-        if (user) {
-          const likedRes = await axios.get('/api/v1/likes/videos');
-          if (likedRes.data?.success) {
-            const hasLiked = likedRes.data.data.some(v => v._id === activeVideoId);
-            setIsLiked(hasLiked);
+        // Check user reactions and emoji breakdown
+        try {
+          const reactionsRes = await axios.get(`/api/v1/likes/video/${activeVideoId}/reactions`);
+          if (reactionsRes.data?.success) {
+            const { totalLikes, reactions, userReaction: uReact } = reactionsRes.data.data;
+            setTotalLikesCount(totalLikes);
+            setReactionsBreakdown(reactions || { "👍": 0, "❤️": 0, "😂": 0, "😮": 0, "😢": 0, "😡": 0 });
+            setUserReaction(uReact);
+            setIsLiked(!!uReact);
           }
+        } catch (err) {
+          console.error("Error fetching reactions", err);
         }
       }
     } catch (error) {
@@ -66,39 +75,71 @@ const VideoPlayer = () => {
     fetchVideoDetails();
   }, [activeVideoId, user]);
 
+  const handleReactionClick = async (emoji) => {
+    if (!user) {
+      alert('Please sign in to react to videos');
+      return;
+    }
+    try {
+      const res = await axios.post(`/api/v1/likes/toggle/v/${activeVideoId}`, { emoji });
+      if (res.data?.success) {
+        const oldReaction = userReaction;
+        if (oldReaction === emoji) {
+          setUserReaction(null);
+          setIsLiked(false);
+          setTotalLikesCount(prev => Math.max(0, prev - 1));
+          setReactionsBreakdown(prev => ({
+            ...prev,
+            [emoji]: Math.max(0, (prev[emoji] || 0) - 1)
+          }));
+        } else {
+          setUserReaction(emoji);
+          setIsLiked(true);
+          setReactionsBreakdown(prev => {
+            const nextReactions = { ...prev };
+            if (oldReaction) {
+              nextReactions[oldReaction] = Math.max(0, (nextReactions[oldReaction] || 0) - 1);
+            } else {
+              setTotalLikesCount(t => t + 1);
+            }
+            nextReactions[emoji] = (nextReactions[emoji] || 0) + 1;
+            return nextReactions;
+          });
+        }
+        setShowEmojiBar(false);
+      }
+    } catch (error) {
+      console.error('Error updating reaction', error);
+    }
+  };
+
   const handleToggleLike = async () => {
     if (!user) {
       alert('Please sign in to like videos');
       return;
     }
-    try {
-      const res = await axios.post(`/api/v1/likes/toggle/v/${activeVideoId}`);
-      if (res.data?.success) {
-        setIsLiked(!isLiked);
-      }
-    } catch (error) {
-      console.error('Error toggling like', error);
-    }
+    const emojiToToggle = userReaction || "👍";
+    await handleReactionClick(emojiToToggle);
   };
 
-  const handleToggleSubscription = async () => {
+  const handleToggleFollow = async () => {
     if (!user) {
-      alert('Please sign in to subscribe to channels');
+      alert('Please sign in to follow creators');
       return;
     }
     const channelId = video?.owner?._id;
     if (channelId === user._id) {
-      alert("You cannot subscribe to your own channel!");
+      alert("You cannot follow yourself!");
       return;
     }
     try {
-      const res = await axios.post(`/api/v1/subscriptions/c/${channelId}`);
+      const res = await axios.post(`/api/v1/follows/c/${channelId}`);
       if (res.data?.success) {
-        setIsSubscribed(!isSubscribed);
-        setSubscribersCount(prev => isSubscribed ? prev - 1 : prev + 1);
+        setIsFollowing(!isFollowing);
+        setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1);
       }
     } catch (error) {
-      console.error('Error toggling subscription', error);
+      console.error('Error toggling follow', error);
     }
   };
 
@@ -214,15 +255,15 @@ const VideoPlayer = () => {
                   <Sparkles size={12} style={{ color: 'var(--accent)' }} />
                 </span>
                 <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  {subscribersCount} subscribers
+                  {followersCount} followers
                 </span>
               </div>
 
-              {/* Subscribe button */}
+              {/* Follow button */}
               {user && owner._id !== user._id && (
                 <button
-                  onClick={handleToggleSubscription}
-                  className={isSubscribed ? 'btn btn-secondary' : 'btn btn-primary'}
+                  onClick={handleToggleFollow}
+                  className={isFollowing ? 'btn btn-secondary' : 'btn btn-primary'}
                   style={{
                     padding: '6px 14px',
                     borderRadius: 'var(--radius-full)',
@@ -230,22 +271,102 @@ const VideoPlayer = () => {
                     marginLeft: '12px'
                   }}
                 >
-                  {isSubscribed ? <UserMinus size={14} /> : <UserPlus size={14} />}
-                  <span>{isSubscribed ? 'Subscribed' : 'Subscribe'}</span>
+                  {isFollowing ? <UserMinus size={14} /> : <UserPlus size={14} />}
+                  <span>{isFollowing ? 'Following' : 'Follow'}</span>
                 </button>
               )}
             </div>
 
             {/* Like, Share, and Metrics */}
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', position: 'relative' }}
+                 onMouseEnter={() => setShowEmojiBar(true)}
+                 onMouseLeave={() => setShowEmojiBar(false)}>
+              
+              {/* Floating Emoji Bar */}
+              {showEmojiBar && user && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '45px',
+                  left: '0',
+                  background: 'rgba(30, 30, 40, 0.95)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '6px 12px',
+                  display: 'flex',
+                  gap: '10px',
+                  boxShadow: 'var(--shadow-lg)',
+                  zIndex: 10,
+                  animation: 'slideUp 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards'
+                }}>
+                  {["👍", "❤️", "😂", "😮", "😢", "😡"].map(emoji => (
+                    <button
+                      key={emoji}
+                      onClick={() => handleReactionClick(emoji)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        fontSize: '20px',
+                        cursor: 'pointer',
+                        transition: 'transform 0.15s ease',
+                        padding: '2px'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <button
                 onClick={handleToggleLike}
                 className={isLiked ? 'btn btn-primary' : 'btn btn-secondary'}
-                style={{ borderRadius: 'var(--radius-full)', padding: '8px 18px', fontSize: '13px' }}
+                style={{ 
+                  borderRadius: 'var(--radius-full)', 
+                  padding: '8px 18px', 
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
               >
-                <ThumbsUp size={16} fill={isLiked ? '#fff' : 'none'} />
-                <span>{isLiked ? 'Liked' : 'Like'}</span>
+                {isLiked ? (
+                  <span style={{ fontSize: '15px' }}>{userReaction}</span>
+                ) : (
+                  <ThumbsUp size={16} />
+                )}
+                <span>{isLiked ? 'Reacted' : 'Like'}</span>
+                
+                {/* Total Likes Badge */}
+                {totalLikesCount > 0 && (
+                  <span style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    marginLeft: '4px'
+                  }}>
+                    {totalLikesCount}
+                  </span>
+                )}
               </button>
+
+              {/* Emoji breakdown mini display */}
+              {totalLikesCount > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                  {Object.entries(reactionsBreakdown)
+                    .filter(([_, count]) => count > 0)
+                    .map(([emoji, count]) => (
+                      <span key={emoji} style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '2px', background: 'rgba(255, 255, 255, 0.05)', padding: '2px 8px', borderRadius: 'var(--radius-full)', border: '1px solid rgba(255, 255, 255, 0.03)' }} title={`${count} reactions`}>
+                        {emoji} <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{count}</span>
+                      </span>
+                    ))
+                  }
+                </div>
+              )}
             </div>
           </div>
 
@@ -346,6 +467,16 @@ const VideoPlayer = () => {
         @media (min-width: 992px) {
           .video-detail-grid {
             grid-template-columns: 2fr 1fr;
+          }
+        }
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
           }
         }
       `}</style>
