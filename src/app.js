@@ -71,6 +71,7 @@ app.use("/api/v1/dashboard", dashboardRouter)
 
 // here the bug fixed by copilot and the bug is no global error handler. Explanation: Without a global error handler, unhandled errors would crash the server or return generic responses.
 app.use((err, req, res, next) => {
+    console.error("Backend Error:", err);
     const statusCode = err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     res.status(statusCode).json({
