@@ -115,7 +115,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
     }
 });
 
-const genrateAccessAndRefreshToken = async (userId)=>
+const generateAccessAndRefreshToken = async (userId)=>
 {
     try{
       const user= await User.findById(userId);
@@ -161,9 +161,9 @@ const loginUser = asyncHandler(async (req, res, next) => {
     }
     
 
-    const {accessToken, refreshToken} = await genrateAccessAndRefreshToken(user._id);
+    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id);
  
-    const loogedInUser = await User.findById(user._id).select("-password -refreshToken");
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
      
     const  options ={
         // here the bug fixed by copilot and the bug is httpsonly: true — should be httpOnly: true (cookies not protected!). Explanation: Incorrect property name meant cookies were not properly secured against client-side access.
@@ -179,7 +179,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
     .cookie("accessToken", accessToken, options)
     .json(
         new ApiResponse(200, {
-            user:loogedInUser, 
+            user:loggedInUser, 
             accessToken, 
             refreshToken
         },
@@ -252,7 +252,7 @@ const refreshAccessToken = asyncHandler(async (req, res, next) => {
             throw new ApiError(401,"refresh token is invalid or expired");
         }
     
-        const {accessToken, refreshToken} = await genrateAccessAndRefreshToken(user._id);
+        const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id);
     
         const  options ={
             // here the bug fixed by copilot and the bug is httpsonly: true — should be httpOnly: true (cookies not protected!). Explanation: Incorrect property name meant cookies were not properly secured against client-side access.
@@ -512,7 +512,7 @@ const socialLoginOrRegister = asyncHandler(async (req, res, next) => {
         });
     }
 
-    const { accessToken, refreshToken } = await genrateAccessAndRefreshToken(user._id);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
@@ -602,7 +602,7 @@ const mobileLoginOrRegister = asyncHandler(async (req, res, next) => {
         }
     }
 
-    const { accessToken, refreshToken } = await genrateAccessAndRefreshToken(user._id);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
@@ -679,7 +679,7 @@ const googleOAuthLogin = asyncHandler(async (req, res, next) => {
             });
         }
 
-        const { accessToken, refreshToken } = await genrateAccessAndRefreshToken(user._id);
+        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
         const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 

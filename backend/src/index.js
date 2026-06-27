@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import dbconect from "./db/dbconection.js";
+import connectDB from "./db/dbConnection.js";
 import {app} from "./app.js";
 
 
@@ -9,21 +9,21 @@ dotenv.config({
 
 
 // Modified by Antigravity: Start Express server even if the MongoDB connection fails to allow local preview/offline testing
-dbconect()
+connectDB()
 .then(()=>{
     const port = process.env.PORT || 8000;
     app.listen(port,()=>{
-        console.log(`server is listening at:${port}`);
+        console.log(`Server is listening at: ${port}`);
     })
     app.on("error",(error)=>{
         console.log("ERROR:",error)
     })
 })
 .catch((error)=>{
-    console.log(`mongodb conection is failed!! starting server in offline fallback mode`, error)
+    console.log(`MongoDB connection failed!! Starting server in offline fallback mode`, error)
     const port = process.env.PORT || 8000;
     app.listen(port,()=>{
-        console.log(`server is listening at:${port} (OFFLINE Fallback Mode)`);
+        console.log(`Server is listening at: ${port} (OFFLINE Fallback Mode)`);
     })
 })
 

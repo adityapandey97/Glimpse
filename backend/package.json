@@ -1,7 +1,7 @@
 {
-  "name": "chaibackend3",
+  "name": "glimpse-backend",
   "version": "1.0.0",
-  "description": "first backend project",
+  "description": "Glimpse social media backend application",
   "main": "index.js",
   "type": "module",
   "scripts": {
