@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import axios from 'axios';
 import { Send, Trash2, Edit2, Check, X, MessageSquare } from 'lucide-react';
-import { ApiError } from '../../../src/utils/ApiError';
 
 /* Modified by Antigravity: Interactive Comments Section */
 const CommentSection = ({ videoId }) => {
