@@ -37,6 +37,8 @@ const AuthModal = ({ onClose }) => {
 
   // Mock social oauth popup state
   const [providerConsent, setProviderConsent] = useState(null); // 'google' | null
+  const [googleAuthPhase, setGoogleAuthPhase] = useState(1); // 1 = Choose Account, 2 = Permissions
+  const [chosenGoogleUser, setChosenGoogleUser] = useState({ name: '', email: '' });
   
   // Status states
   const [loading, setLoading] = useState(false);
@@ -152,14 +154,14 @@ const AuthModal = ({ onClose }) => {
   };
 
   // Handle Mock Social Consent Approval (Google only)
-  const handleSocialAuthConfirm = async () => {
+  const handleSocialAuthConfirm = async (selectedEmail, selectedFullName) => {
     setLoading(true);
     setErrorMsg('');
     const provider = 'google';
     const providerId = `google_user_${Math.floor(100000 + Math.random() * 900000)}`;
-    const mockEmail = `google_user_${providerId.slice(-4)}@gmail.com`;
-    const mockFullName = 'Google Account';
-    const mockUsername = `google_${providerId.slice(-4)}`;
+    const mockEmail = selectedEmail || `google_user_${providerId.slice(-4)}@gmail.com`;
+    const mockFullName = selectedFullName || 'Google Account';
+    const mockUsername = mockEmail.split('@')[0];
     
     try {
       const res = await axios.post('/api/v1/users/social-auth', {
@@ -514,7 +516,10 @@ const AuthModal = ({ onClose }) => {
         <div style={{ display: 'block' }}>
           <button
             type="button"
-            onClick={() => setProviderConsent('google')}
+            onClick={() => {
+              setProviderConsent('google');
+              setGoogleAuthPhase(1);
+            }}
             className="btn btn-secondary"
             style={{
               width: '100%',
@@ -541,48 +546,264 @@ const AuthModal = ({ onClose }) => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
+          background: 'rgba(0, 0, 0, 0.85)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 250,
-          backdropFilter: 'blur(6px)'
+          backdropFilter: 'blur(8px)'
         }} className="animate-fade">
-          <div className="glass-panel animate-scale" style={{
+          
+          <div style={{
             width: '100%',
-            maxWidth: '380px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)',
-            padding: '24px',
-            textAlign: 'center',
-            boxShadow: 'var(--shadow-lg)'
-          }}>
-            <h3 style={{ textTransform: 'capitalize', fontSize: '18px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <GoogleIcon />
-              <span>Sign in with Google</span>
-            </h3>
+            maxWidth: '420px',
+            background: '#ffffff',
+            borderRadius: '8px',
+            border: '1px solid #dadce0',
+            padding: '40px',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            color: '#3c4043',
+            textAlign: 'left',
+            position: 'relative'
+          }} className="animate-scale">
             
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.4' }}>
-              <strong>Glimpse</strong> is requesting permission to access your profile name, email, and avatar picture from Google.
-            </p>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => setProviderConsent(null)}
-                className="btn btn-secondary"
-                style={{ flexGrow: 1, padding: '10px' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSocialAuthConfirm}
-                className="btn btn-primary"
-                style={{ flexGrow: 1, padding: '10px' }}
-              >
-                Agree & Continue
-              </button>
+            {/* Header branding */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '28px' }}>
+              <GoogleIcon />
+              {googleAuthPhase === 1 ? (
+                <>
+                  <h3 style={{ fontSize: '24px', fontWeight: '400', color: '#202124', marginTop: '16px', marginBottom: '6px' }}>Sign in</h3>
+                  <span style={{ fontSize: '15px', color: '#202124' }}>to continue to <strong style={{ color: '#000' }}>Glimpse</strong></span>
+                </>
+              ) : (
+                <>
+                  <h3 style={{ fontSize: '20px', fontWeight: '400', color: '#202124', marginTop: '16px', marginBottom: '6px', padding: '0 10px', lineHeight: '1.3' }}>
+                    Glimpse wants to access your Google Account
+                  </h3>
+                  <span style={{ fontSize: '14px', color: '#5f6368', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', background: '#f1f3f4', padding: '4px 10px', borderRadius: '16px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ea580c', display: 'inline-block' }}></span>
+                    {chosenGoogleUser.email}
+                  </span>
+                </>
+              )}
             </div>
+
+            {googleAuthPhase === 1 ? (
+              /* Choose Account Screen */
+              <div>
+                <p style={{ fontSize: '15px', color: '#202124', marginBottom: '16px' }}>Choose an account</p>
+                <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #dadce0', borderRadius: '8px', overflow: 'hidden' }}>
+                  
+                  {/* Account 1: Honey Pandey */}
+                  <button 
+                    onClick={() => {
+                      setChosenGoogleUser({ name: 'Honey Pandey', email: 'honey.pandey97@gmail.com' });
+                      setGoogleAuthPhase(2);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '14px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #dadce0',
+                      cursor: 'pointer',
+                      width: '100%',
+                      textAlign: 'left',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#ea580c',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '14px'
+                    }}>
+                      HP
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#3c4043' }}>Honey Pandey</span>
+                      <span style={{ fontSize: '12px', color: '#5f6368' }}>honey.pandey97@gmail.com</span>
+                    </div>
+                  </button>
+
+                  {/* Account 2: Aditya Pandey */}
+                  <button 
+                    onClick={() => {
+                      setChosenGoogleUser({ name: 'Aditya Pandey', email: 'aditya.pandey@glimpse.com' });
+                      setGoogleAuthPhase(2);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '14px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #dadce0',
+                      cursor: 'pointer',
+                      width: '100%',
+                      textAlign: 'left',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#1c1c1c',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '14px'
+                    }}>
+                      AP
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#3c4043' }}>Aditya Pandey</span>
+                      <span style={{ fontSize: '12px', color: '#5f6368' }}>aditya.pandey@glimpse.com</span>
+                    </div>
+                  </button>
+
+                  {/* Use another account option */}
+                  <button 
+                    onClick={() => {
+                      setChosenGoogleUser({ name: 'Guest User', email: 'guest.glimpse@gmail.com' });
+                      setGoogleAuthPhase(2);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '14px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      width: '100%',
+                      textAlign: 'left',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#f1f3f4',
+                      color: '#5f6368',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px'
+                    }}>
+                      +
+                    </div>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1a73e8' }}>Use guest account</span>
+                  </button>
+
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>
+                  <button
+                    onClick={() => setProviderConsent(null)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#1a73e8',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      padding: '8px 12px',
+                      borderRadius: '4px'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(26,115,232,0.04)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Permissions Consent / Allow Screen */
+              <div>
+                <p style={{ fontSize: '14px', color: '#3c4043', marginBottom: '16px', lineHeight: '1.5' }}>
+                  This will allow Glimpse to:
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '32px' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <div style={{ color: '#1a73e8', fontSize: '18px', marginTop: '-2px' }}>✓</div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#202124' }}>Read your personal info</span>
+                      <span style={{ fontSize: '12px', color: '#5f6368' }}>Access name, gender, profile photo, and public profile data.</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <div style={{ color: '#1a73e8', fontSize: '18px', marginTop: '-2px' }}>✓</div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#202124' }}>Read your primary email address</span>
+                      <span style={{ fontSize: '12px', color: '#5f6368' }}>Associate your Glimpse account with your email.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+                  <button
+                    onClick={() => setGoogleAuthPhase(1)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#1a73e8',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      padding: '10px 16px',
+                      borderRadius: '4px'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(26,115,232,0.04)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    onClick={() => handleSocialAuthConfirm(chosenGoogleUser.email, chosenGoogleUser.name)}
+                    style={{
+                      border: 'none',
+                      background: '#1a73e8',
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      padding: '10px 24px',
+                      borderRadius: '4px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#1557b0'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#1a73e8'}
+                  >
+                    Allow & Continue
+                  </button>
+                </div>
+              </div>
+            )}
+            
           </div>
+          
         </div>
       )}
 

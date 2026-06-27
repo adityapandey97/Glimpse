@@ -35,7 +35,7 @@ const Navbar = ({ onOpenAuth, onOpenUpload, onToggleSidebar }) => {
           style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
         >
           <div style={{
-            background: 'var(--primary-glow)',
+            background: 'var(--logo-glow)',
             width: '36px',
             height: '36px',
             borderRadius: 'var(--radius-sm)',
@@ -44,12 +44,12 @@ const Navbar = ({ onOpenAuth, onOpenUpload, onToggleSidebar }) => {
             justifyContent: 'center',
             color: '#fff',
             fontWeight: 'bold',
-            boxShadow: 'var(--shadow-glow)'
+            boxShadow: '0 0 15px rgba(249, 115, 22, 0.45)'
           }}>
             G
           </div>
-          <span className="gradient-text nav-logo-text" style={{ fontStyle: 'italic', fontWeight: '800', fontSize: '20px', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            Glimpse <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+          <span className="logo-gradient-text nav-logo-text" style={{ fontStyle: 'italic', fontWeight: '800', fontSize: '20px', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            Glimpse <Sparkles size={14} style={{ color: 'var(--logo-color)' }} />
           </span>
         </div>
       </div>
@@ -103,7 +103,10 @@ const Navbar = ({ onOpenAuth, onOpenUpload, onToggleSidebar }) => {
             </button>
 
             {/* Profile Avatar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div 
+              onClick={() => setActiveTab('channel')}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            >
               <img
                 src={user.avatar}
                 alt={user.username}

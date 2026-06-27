@@ -46,6 +46,12 @@ function App() {
     }
   }, [user]);
 
+  // Close active video player overlay when sidebar/tab navigation changes
+  useEffect(() => {
+    setActiveVideoId(null);
+  }, [activeTab, setActiveVideoId]);
+
+
   if (loadingUser) {
     return (
       <div style={{

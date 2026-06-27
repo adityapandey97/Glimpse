@@ -5,7 +5,7 @@ import { LayoutDashboard, Users, Eye, Heart, Film, Globe, Lock, Trash2, Edit2, C
 
 /* Modified by Antigravity: Channel Dashboard & Analytics page */
 const Dashboard = () => {
-  const { user } = useContext(AppContext);
+  const { user, setActiveTab } = useContext(AppContext);
   const [stats, setStats] = useState(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,11 +94,20 @@ const Dashboard = () => {
   return (
     <div style={{ flexGrow: 1, padding: '24px', overflowY: 'auto' }} className="animate-fade">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
-        <LayoutDashboard size={24} style={{ color: 'var(--primary)' }} />
-        <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-          Channel Dashboard
-        </h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <LayoutDashboard size={24} style={{ color: 'var(--primary)' }} />
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+            Channel Dashboard
+          </h2>
+        </div>
+        <button 
+          onClick={() => setActiveTab('settings')}
+          className="btn btn-secondary"
+          style={{ padding: '8px 16px', fontSize: '13px', borderRadius: 'var(--radius-md)' }}
+        >
+          Edit Channel Profile
+        </button>
       </div>
 
       {loading ? (

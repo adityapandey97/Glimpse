@@ -46,48 +46,6 @@ const HomeFeed = () => {
 
   return (
     <div style={{ flexGrow: 1, padding: '24px', overflowY: 'auto' }}>
-      {/* Welcome Banner */}
-      {!searchQuery && (
-        <div 
-          className="glass-panel" 
-          style={{
-            borderRadius: 'var(--radius-lg)',
-            padding: '40px',
-            marginBottom: '32px',
-            // Modified by Antigravity: updated gradient values to match new light orange theme variables
-            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%)',
-            border: '1px solid var(--border-color-glow)',
-            textAlign: 'left',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          <div style={{ position: 'relative', zIndex: 2, maxWidth: '550px' }}>
-            <span className="badge badge-primary" style={{ marginBottom: '12px' }}>
-              <Flame size={12} style={{ marginRight: '4px' }} /> Trending Platform
-            </span>
-            <h1 style={{ fontSize: '32px', fontWeight: '800', lineHeight: '1.2', marginBottom: '12px', color: 'var(--text-primary)' }}>
-              Explore Premium Video Content and Creative Channels
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
-              Upload high-quality videos, interact with like and comment metrics, and connect with developers, artists, and creators worldwide.
-            </p>
-          </div>
-          <div style={{
-            position: 'absolute',
-            right: '-40px',
-            bottom: '-40px',
-            width: '200px',
-            height: '200px',
-            background: 'var(--primary-glow)',
-            borderRadius: '50%',
-            filter: 'blur(80px)',
-            opacity: 0.2,
-            zIndex: 1
-          }}></div>
-        </div>
-      )}
-
       {/* Category Pills */}
       <div style={{
         display: 'flex',
@@ -106,7 +64,7 @@ const HomeFeed = () => {
               borderRadius: 'var(--radius-full)',
               border: '1px solid var(--border-color)',
               background: selectedCategory === cat ? 'var(--primary-glow)' : 'var(--bg-secondary)',
-              color: selectedCategory === cat ? '#fff' : 'var(--text-secondary)',
+              color: selectedCategory === cat ? 'var(--primary-text)' : 'var(--text-secondary)',
               fontSize: '13px',
               fontWeight: '600',
               textTransform: 'capitalize',

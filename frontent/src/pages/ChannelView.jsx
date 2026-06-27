@@ -6,7 +6,7 @@ import { Tv, Info, Film, Sparkles } from 'lucide-react';
 
 /* Modified by Antigravity: Channel Profile Page */
 const ChannelView = () => {
-  const { user } = useContext(AppContext);
+  const { user, setActiveTab } = useContext(AppContext);
   const [videos, setVideos] = useState([]);
   const [followersCount, setFollowersCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -76,33 +76,42 @@ const ChannelView = () => {
         flexDirection: 'column',
         gap: '16px'
       }}>
-        {/* Avatar overlapping banner */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end', marginTop: '-50px' }}>
-          <img
-            src={user.avatar}
-            alt=""
-            style={{
-              width: '100px',
-              height: '100px',
-              borderRadius: 'var(--radius-full)',
-              border: '4px solid var(--bg-primary)',
-              objectFit: 'cover',
-              background: 'var(--bg-secondary)',
-              boxShadow: 'var(--shadow-md)',
-              position: 'relative',
-              zIndex: 5
-            }}
-          />
-          <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '10px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-              {user.fullName}
-              <Sparkles size={16} style={{ color: 'var(--accent)' }} />
-            </h2>
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>@{user.username}</span>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: '500' }}>
-              {followersCount} followers • {publicVideos.length} public videos
-            </span>
+        {/* Avatar overlapping banner and edit buttons */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end', marginTop: '-50px', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <img
+              src={user.avatar}
+              alt=""
+              style={{
+                width: '100px',
+                height: '100px',
+                borderRadius: 'var(--radius-full)',
+                border: '4px solid var(--bg-primary)',
+                objectFit: 'cover',
+                background: 'var(--bg-secondary)',
+                boxShadow: 'var(--shadow-md)',
+                position: 'relative',
+                zIndex: 5
+              }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '10px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                {user.fullName}
+                <Sparkles size={16} style={{ color: 'var(--logo-color)' }} />
+              </h2>
+              <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>@{user.username}</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: '500' }}>
+                {followersCount} followers • {publicVideos.length} public videos
+              </span>
+            </div>
           </div>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className="btn btn-secondary animate-fade"
+            style={{ marginBottom: '10px', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '13px' }}
+          >
+            Edit Profile
+          </button>
         </div>
 
         {/* Tab Selection */}
