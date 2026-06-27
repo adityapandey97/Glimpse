@@ -14,6 +14,10 @@ import Subscription from "../models/subscription.models.js";
 import {cloudinaryupload}  from "../utils/cloudinary.js";
 // here the bug fixed by copilot and the bug is import { decode } from "jsonwebtoken" — wrong import, jwt never available. Explanation: This caused import error as decode is not exported from jsonwebtoken.
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 
 const registerUser = asyncHandler(async (req, res, next) => {
@@ -620,6 +624,87 @@ const mobileLoginOrRegister = asyncHandler(async (req, res, next) => {
         );
 });
 
+const googleOAuthLogin = asyncHandler(async (req, res, next) => {
+    const { credential } = req.body;
+    if (!credential) {
+        throw new ApiError(400, "Google ID token is required");
+    }
+
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        
+        if (!payload || !payload.email) {
+            throw new ApiError(400, "Invalid Google ID token");
+        }
+
+        const { email, name, picture, sub: googleId } = payload;
+
+        // Check if user exists with matching googleId
+        let user = await User.findOne({ googleId });
+
+        // If not found by googleId, check by email
+        if (!user) {
+            user = await User.findOne({ email });
+            if (user) {
+                // Link google account to existing local/other user
+                user.googleId = googleId;
+                user.provider = "google";
+                await user.save();
+            }
+        }
+
+        // If user still doesn't exist, create a new one
+        if (!user) {
+            // Generate a unique username from email
+            let baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+            let username = baseUsername;
+            let usernameExists = await User.findOne({ username });
+            while (usernameExists) {
+                username = `${baseUsername}_${Math.floor(100 + Math.random() * 900)}`;
+                usernameExists = await User.findOne({ username });
+            }
+
+            user = await User.create({
+                username,
+                fullName: name || "Google User",
+                email,
+                avatar: picture || "https://api.dicebear.com/7.x/bottts/svg?seed=default",
+                provider: "google",
+                googleId,
+                password: "" // password-less social login
+            });
+        }
+
+        const { accessToken, refreshToken } = await genrateAccessAndRefreshToken(user._id);
+
+        const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+        const options = {
+            httpOnly: true,
+            secure: true
+        };
+
+        return res
+            .status(200)
+            .cookie("refreshToken", refreshToken, options)
+            .cookie("accessToken", accessToken, options)
+            .json(
+                new ApiResponse(200, {
+                    user: loggedInUser,
+                    accessToken,
+                    refreshToken
+                }, "Google authentication successful")
+            );
+    } catch (error) {
+        console.error("Error verifying Google ID token:", error);
+        throw new ApiError(401, "Google token verification failed");
+    }
+});
+
 export { 
     registerUser, 
     loginUser, 
@@ -632,5 +717,6 @@ export {
     updateUsercoverImage,
     deleteUser,
     socialLoginOrRegister,
-    mobileLoginOrRegister
+    mobileLoginOrRegister,
+    googleOAuthLogin
 };

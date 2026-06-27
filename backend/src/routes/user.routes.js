@@ -11,7 +11,8 @@ import {
     updateUsercoverImage,
     deleteUser,
     socialLoginOrRegister,
-    mobileLoginOrRegister
+    mobileLoginOrRegister,
+    googleOAuthLogin
 } from "../controllers/user.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -84,5 +85,6 @@ router.route("/delete-account").delete(
 
 router.route("/social-auth").post(socialLoginOrRegister);
 router.route("/mobile-auth").post(mobileLoginOrRegister);
+router.route("/google-login").post(googleOAuthLogin);
 
 export default router ;
