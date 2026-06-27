@@ -13,26 +13,11 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const GithubIcon = () => (
-  <svg style={{ width: '18px', height: '18px', flexShrink: 0 }} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
-  </svg>
-);
-
-const InstagramIcon = () => (
-  <svg style={{ width: '18px', height: '18px', flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-  </svg>
-);
-
-
 const AuthModal = ({ onClose }) => {
   const { login, register, checkAuth } = useContext(AppContext);
   const [isLogin, setIsLogin] = useState(true);
   
-  // Custom auth mode selection ('email' | 'mobile')
+  // Custom auth mode selection for login ('email' | 'mobile')
   const [authMode, setAuthMode] = useState('email');
 
   // Email Login/Register fields
@@ -47,15 +32,11 @@ const AuthModal = ({ onClose }) => {
 
   // Mobile Auth fields
   const [mobileNumber, setMobileNumber] = useState('');
-  const [mobilePassword, setMobilePassword] = useState('');
-  const [mobileFullName, setMobileFullName] = useState('');
-  const [mobileUsername, setMobileUsername] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [isOtpFlow, setIsOtpFlow] = useState(false); // toggles between OTP vs Password for mobile
 
   // Mock social oauth popup state
-  const [providerConsent, setProviderConsent] = useState(null); // 'google' | 'github' | 'instagram' | null
+  const [providerConsent, setProviderConsent] = useState(null); // 'google' | null
   
   // Status states
   const [loading, setLoading] = useState(false);
@@ -124,7 +105,7 @@ const AuthModal = ({ onClose }) => {
     }
   };
 
-  // Handle mobile login/register
+  // Handle mobile OTP login/signup
   const handleMobileSubmit = async (e) => {
     e.preventDefault();
     if (!mobileNumber) {
@@ -136,65 +117,31 @@ const AuthModal = ({ onClose }) => {
     setLoading(true);
 
     try {
-      if (isOtpFlow) {
-        // Simulated OTP Verification flow
-        if (!otpSent) {
-          // Send simulated OTP
-          setTimeout(() => {
-            setOtpSent(true);
-            setLoading(false);
-            alert(`[SIMULATION] Verification SMS sent to +91 ${mobileNumber}. Default OTP is 1234.`);
-          }, 800);
-          return;
-        } else {
-          // Verify simulated OTP
-          if (otpCode !== '1234') {
-            setErrorMsg('Invalid simulated verification code (Use 1234)');
-            setLoading(false);
-            return;
-          }
-          const res = await axios.post('/api/v1/users/mobile-auth', {
-            mobileNumber,
-            action: 'otp_login',
-            fullName: mobileFullName || 'Mobile User',
-            username: mobileUsername || `user_${mobileNumber.slice(-4)}`
-          });
-          if (res.data?.success) {
-            await checkAuth();
-            onClose();
-          } else {
-            setErrorMsg(res.data?.message || 'Mobile OTP authentication failed');
-          }
-        }
+      if (!otpSent) {
+        // Send simulated OTP
+        setTimeout(() => {
+          setOtpSent(true);
+          setLoading(false);
+          alert(`[SIMULATION] Verification SMS sent to +91 ${mobileNumber}. Default OTP is 1234.`);
+        }, 800);
       } else {
-        // Standard password based mobile auth
-        if (isLogin) {
-          const res = await axios.post('/api/v1/users/mobile-auth', {
-            mobileNumber,
-            password: mobilePassword,
-            action: 'login'
-          });
-          if (res.data?.success) {
-            await checkAuth();
-            onClose();
-          }
+        // Verify simulated OTP
+        if (otpCode !== '1234') {
+          setErrorMsg('Invalid simulated verification code (Use 1234)');
+          setLoading(false);
+          return;
+        }
+        const res = await axios.post('/api/v1/users/mobile-auth', {
+          mobileNumber,
+          action: 'otp_login',
+          fullName: 'Mobile User',
+          username: `user_${mobileNumber.slice(-4)}`
+        });
+        if (res.data?.success) {
+          await checkAuth();
+          onClose();
         } else {
-          if (!mobileFullName || !mobileUsername || !mobilePassword) {
-            setErrorMsg('All fields are required');
-            setLoading(false);
-            return;
-          }
-          const res = await axios.post('/api/v1/users/mobile-auth', {
-            mobileNumber,
-            fullName: mobileFullName,
-            username: mobileUsername,
-            password: mobilePassword,
-            action: 'register'
-          });
-          if (res.data?.success) {
-            await checkAuth();
-            onClose();
-          }
+          setErrorMsg(res.data?.message || 'Mobile OTP authentication failed');
         }
       }
     } catch (err) {
@@ -204,15 +151,15 @@ const AuthModal = ({ onClose }) => {
     }
   };
 
-  // Handle Mock Social Consent Approval
+  // Handle Mock Social Consent Approval (Google only)
   const handleSocialAuthConfirm = async () => {
     setLoading(true);
     setErrorMsg('');
-    const provider = providerConsent;
-    const providerId = `${provider}_user_${Math.floor(100000 + Math.random() * 900000)}`;
-    const mockEmail = `${provider}_user_${providerId.slice(-4)}@${provider === 'github' ? 'github.com' : 'gmail.com'}`;
-    const mockFullName = provider === 'github' ? 'GitHub Developer' : provider === 'instagram' ? 'Insta Creator' : 'Google Account';
-    const mockUsername = `${provider}_${providerId.slice(-4)}`;
+    const provider = 'google';
+    const providerId = `google_user_${Math.floor(100000 + Math.random() * 900000)}`;
+    const mockEmail = `google_user_${providerId.slice(-4)}@gmail.com`;
+    const mockFullName = 'Google Account';
+    const mockUsername = `google_${providerId.slice(-4)}`;
     
     try {
       const res = await axios.post('/api/v1/users/social-auth', {
@@ -228,10 +175,10 @@ const AuthModal = ({ onClose }) => {
         await checkAuth();
         onClose();
       } else {
-        setErrorMsg(res.data?.message || 'Social authentication failed');
+        setErrorMsg(res.data?.message || 'Google authentication failed');
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Server error during social authentication');
+      setErrorMsg(err.response?.data?.message || 'Server error during Google authentication');
     } finally {
       setLoading(false);
     }
@@ -313,7 +260,7 @@ const AuthModal = ({ onClose }) => {
             Login
           </button>
           <button
-            onClick={() => { setIsLogin(false); setErrorMsg(''); setOtpSent(false); }}
+            onClick={() => { setIsLogin(false); setErrorMsg(''); setOtpSent(false); setAuthMode('email'); }}
             style={{
               flexGrow: 1,
               padding: '10px',
@@ -347,207 +294,174 @@ const AuthModal = ({ onClose }) => {
           </div>
         )}
 
-        {/* Auth Mode Toggle (Email / Mobile) */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-          <button
-            onClick={() => { setAuthMode(authMode === 'email' ? 'mobile' : 'email'); setErrorMsg(''); setOtpSent(false); }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--primary)',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            {authMode === 'email' ? <Smartphone size={16} /> : <Mail size={16} />}
-            <span>Use {authMode === 'email' ? 'Mobile Number / OTP' : 'Email & Username'}</span>
-          </button>
-        </div>
+        {/* Auth Mode Toggle for Login (Email / Mobile) */}
+        {isLogin && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            <button
+              onClick={() => { setAuthMode(authMode === 'email' ? 'mobile' : 'email'); setErrorMsg(''); setOtpSent(false); }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--primary)',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              {authMode === 'email' ? <Smartphone size={16} /> : <Mail size={16} />}
+              <span>Use {authMode === 'email' ? 'Mobile Number & OTP' : 'Email & Username'}</span>
+            </button>
+          </div>
+        )}
 
-        {/* Standard Email Auth Forms */}
-        {authMode === 'email' ? (
-          isLogin ? (
-            <form onSubmit={handleLoginSubmit}>
-              <div className="form-group">
-                <label className="input-label">Username or Email</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    placeholder="Enter email or username"
-                    value={loginId}
-                    onChange={(e) => setLoginId(e.target.value)}
-                    className="input-field"
-                    style={{ paddingLeft: '40px' }}
-                    required
-                  />
-                  <User size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label className="input-label">Password</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="input-field"
-                    style={{ paddingLeft: '40px' }}
-                    required
-                  />
-                  <Lock size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
-                </div>
-              </div>
-
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleRegisterSubmit} style={{ maxHeight: '40vh', overflowY: 'auto', paddingRight: '4px' }}>
-              <div className="form-group">
-                <label className="input-label">Username</label>
-                <input
-                  type="text"
-                  placeholder="e.g. honey_pandey"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="input-field"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="input-label">Full Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Aditya Pandey"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="input-field"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="input-label">Email</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="email"
-                    placeholder="email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="input-field"
-                    style={{ paddingLeft: '40px' }}
-                    required
-                  />
-                  <Mail size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="input-label">Password</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="password"
-                    placeholder="Min 6 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input-field"
-                    style={{ paddingLeft: '40px' }}
-                    required
-                  />
-                  <Lock size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="input-label">Profile Avatar (Required)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <label className="btn btn-secondary" style={{ flexGrow: 1, fontSize: '13px', cursor: 'pointer' }}>
-                    <Camera size={16} />
-                    <span>Choose Avatar</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setAvatar(e.target.files[0])}
-                      style={{ display: 'none' }}
-                      required
-                    />
-                  </label>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {avatar ? avatar.name : 'No file chosen'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label className="input-label">Cover Image (Optional)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <label className="btn btn-secondary" style={{ flexGrow: 1, fontSize: '13px', cursor: 'pointer' }}>
-                    <Camera size={16} />
-                    <span>Choose Cover</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setCoverImage(e.target.files[0])}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {coverImage ? coverImage.name : 'No file chosen'}
-                  </span>
-                </div>
-              </div>
-
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
-                {loading ? 'Creating Account...' : 'Register'}
-              </button>
-            </form>
-          )
-        ) : (
-          /* Mobile Number Auth Flow */
-          <form onSubmit={handleMobileSubmit}>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '14px' }}>
-              <button
-                type="button"
-                onClick={() => { setIsOtpFlow(false); setOtpSent(false); }}
-                style={{
-                  background: !isOtpFlow ? 'var(--primary-glow)' : 'transparent',
-                  color: !isOtpFlow ? '#fff' : 'var(--text-secondary)',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '4px 12px',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Password Login
-              </button>
-              <button
-                type="button"
-                onClick={() => { setIsOtpFlow(true); setOtpSent(false); }}
-                style={{
-                  background: isOtpFlow ? 'var(--primary-glow)' : 'transparent',
-                  color: isOtpFlow ? '#fff' : 'var(--text-secondary)',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '4px 12px',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                SMS OTP Login
-              </button>
+        {/* Forms Selector */}
+        {!isLogin ? (
+          /* Standard Email Registration Form */
+          <form onSubmit={handleRegisterSubmit} style={{ maxHeight: '40vh', overflowY: 'auto', paddingRight: '4px' }}>
+            <div className="form-group">
+              <label className="input-label">Username</label>
+              <input
+                type="text"
+                placeholder="e.g. honey_pandey"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="input-field"
+                required
+              />
             </div>
 
+            <div className="form-group">
+              <label className="input-label">Full Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Aditya Pandey"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="input-field"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="input-label">Email</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: '40px' }}
+                  required
+                />
+                <Mail size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="input-label">Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  placeholder="Min 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: '40px' }}
+                  required
+                />
+                <Lock size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="input-label">Profile Avatar (Required)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label className="btn btn-secondary" style={{ flexGrow: 1, fontSize: '13px', cursor: 'pointer' }}>
+                  <Camera size={16} />
+                  <span>Choose Avatar</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setAvatar(e.target.files[0])}
+                    style={{ display: 'none' }}
+                    required
+                  />
+                </label>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {avatar ? avatar.name : 'No file chosen'}
+                </span>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label className="input-label">Cover Image (Optional)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label className="btn btn-secondary" style={{ flexGrow: 1, fontSize: '13px', cursor: 'pointer' }}>
+                  <Camera size={16} />
+                  <span>Choose Cover</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setCoverImage(e.target.files[0])}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {coverImage ? coverImage.name : 'No file chosen'}
+                </span>
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
+              {loading ? 'Creating Account...' : 'Register'}
+            </button>
+          </form>
+        ) : authMode === 'email' ? (
+          /* Email Login Form */
+          <form onSubmit={handleLoginSubmit}>
+            <div className="form-group">
+              <label className="input-label">Username or Email</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Enter email or username"
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: '40px' }}
+                  required
+                />
+                <User size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label className="input-label">Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="input-field"
+                  style={{ paddingLeft: '40px' }}
+                  required
+                />
+                <Lock size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+        ) : (
+          /* Mobile Number Login Form */
+          <form onSubmit={handleMobileSubmit}>
             <div className="form-group">
               <label className="input-label">Mobile Number</label>
               <div style={{ position: 'relative' }}>
@@ -564,71 +478,26 @@ const AuthModal = ({ onClose }) => {
               </div>
             </div>
 
-            {!isLogin && !isOtpFlow && (
-              <>
-                <div className="form-group">
-                  <label className="input-label">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter Full Name"
-                    value={mobileFullName}
-                    onChange={(e) => setMobileFullName(e.target.value)}
-                    className="input-field"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="input-label">Username</label>
-                  <input
-                    type="text"
-                    placeholder="Enter Username"
-                    value={mobileUsername}
-                    onChange={(e) => setMobileUsername(e.target.value)}
-                    className="input-field"
-                    required
-                  />
-                </div>
-              </>
-            )}
-
-            {isOtpFlow ? (
-              otpSent && (
-                <div className="form-group animate-fade">
-                  <label className="input-label">SMS Verification Code</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      placeholder="Enter verification code (1234)"
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      className="input-field"
-                      style={{ paddingLeft: '40px' }}
-                      required
-                    />
-                    <Key size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
-                  </div>
-                </div>
-              )
-            ) : (
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label className="input-label">Password</label>
+            {otpSent && (
+              <div className="form-group animate-fade" style={{ marginTop: '16px' }}>
+                <label className="input-label">SMS Verification Code</label>
                 <div style={{ position: 'relative' }}>
                   <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={mobilePassword}
-                    onChange={(e) => setMobilePassword(e.target.value)}
+                    type="text"
+                    placeholder="Enter verification code (1234)"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
                     className="input-field"
                     style={{ paddingLeft: '40px' }}
                     required
                   />
-                  <Lock size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
+                  <Key size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
                 </div>
               </div>
             )}
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
-              {loading ? 'Authenticating...' : isOtpFlow ? (otpSent ? 'Verify & Continue' : 'Send Verification SMS') : isLogin ? 'Mobile Sign In' : 'Mobile Register'}
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', marginTop: '20px' }} disabled={loading}>
+              {loading ? 'Authenticating...' : otpSent ? 'Verify & Continue' : 'Send Verification SMS'}
             </button>
           </form>
         )}
@@ -642,33 +511,26 @@ const AuthModal = ({ onClose }) => {
         </div>
 
         {/* Social Buttons Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+        <div style={{ display: 'block' }}>
           <button
             type="button"
             onClick={() => setProviderConsent('google')}
             className="btn btn-secondary"
-            style={{ padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)' }}
+            style={{
+              width: '100%',
+              padding: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: '600',
+              fontSize: '14px'
+            }}
             title="Login with Google"
           >
             <GoogleIcon />
-          </button>
-          <button
-            type="button"
-            onClick={() => setProviderConsent('github')}
-            className="btn btn-secondary"
-            style={{ padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)' }}
-            title="Login with GitHub"
-          >
-            <GithubIcon />
-          </button>
-          <button
-            type="button"
-            onClick={() => setProviderConsent('instagram')}
-            className="btn btn-secondary"
-            style={{ padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)' }}
-            title="Login with Instagram"
-          >
-            <InstagramIcon />
+            <span>Continue with Google</span>
           </button>
         </div>
 
@@ -696,12 +558,12 @@ const AuthModal = ({ onClose }) => {
             boxShadow: 'var(--shadow-lg)'
           }}>
             <h3 style={{ textTransform: 'capitalize', fontSize: '18px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              {providerConsent === 'google' ? <GoogleIcon /> : providerConsent === 'github' ? <GithubIcon /> : <InstagramIcon />}
-              <span>Sign in with {providerConsent}</span>
+              <GoogleIcon />
+              <span>Sign in with Google</span>
             </h3>
             
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.4' }}>
-              <strong>Glimpse</strong> is requesting permission to access your profile name, email, and avatar picture.
+              <strong>Glimpse</strong> is requesting permission to access your profile name, email, and avatar picture from Google.
             </p>
 
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -729,3 +591,4 @@ const AuthModal = ({ onClose }) => {
 };
 
 export default AuthModal;
+
