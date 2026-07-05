@@ -54,36 +54,27 @@ const getChannelStats = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
-                totalViews: { 
-                    $sum: { 
-                        $map: { 
-                            input: "$videosDetails", 
-                            as: "video", 
-                            in: {
-                                $cond: {
-                                    if: { $isArray: "$$video.views" },
-                                    then: { $size: "$$video.views" },
-                                    else: { $ifNull: ["$$video.views", 0] }
-                                }
-                            }
-                        } 
-                    } 
-                },
-                totalLikes: { $size: "$likesDetails" }, // count likes
-                totalSubscribers: { $size: "$subscriptionsDetails" } // count subscribers
+                // Fix #9: views field is a Number not Array — use $ifNull directly
+                totalViews: { $sum: "$videosDetails.views" },
+                totalLikes: { $size: "$likesDetails" },
+                totalSubscribers: { $size: "$subscriptionsDetails" }
             }
         }, 
         {
             $project: {
                 username: 1,
+                fullName: 1,
+                avatar: 1,
                 totalLikes: 1,
                 totalSubscribers: 1,
                 totalViews: 1,
+                totalVideos: { $size: "$videosDetails" },
                 "videosDetails._id": 1,
                 "videosDetails.isPublished": 1,
                 "videosDetails.thumbnail": 1,
                 "videosDetails.title": 1,
                 "videosDetails.description": 1,
+                "videosDetails.views": 1,
                 "videosDetails.createdAt": 1
             }
         }
@@ -91,14 +82,15 @@ const getChannelStats = asyncHandler(async (req, res) => {
     ]);
 
 
-    if (!user) {
+    if (!user || user.length === 0) {
         throw new ApiError(400, "Error Fetching Stats")
     }
 
     return res
         .status(200)
         .json(
-            new ApiResponse(200, user, "Fetching Channel Stats Successful")
+            // Fix #9: Return user[0] — aggregate always returns an array, frontend expects object
+            new ApiResponse(200, user[0], "Fetching Channel Stats Successful")
         )
 })
 
