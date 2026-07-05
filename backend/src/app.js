@@ -14,12 +14,12 @@ app.use(cors({
 }))
 //USE TO TAKE JSON FILE DATA FROM SERVER
 app.use(express.json({
-    limit:`50kb`
+    limit:`1mb`
 }))
 //USE TO READ DATA FROM URL AND DECODE THEM
 app.use(express.urlencoded({
     extended:true,
-    limit:`50kb`
+    limit:`1mb`
 }))
 //THIS IS FOR TAKING YOUR LOCAL DATA OF SOME SPECIFIC ASSEST AS A BACKEP
 app.use(express.static('public'))
