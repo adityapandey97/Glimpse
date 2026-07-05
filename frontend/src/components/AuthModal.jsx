@@ -28,6 +28,7 @@ const AuthModal = ({ onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [avatar, setAvatar] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [coverImage, setCoverImage] = useState(null);
 
   // Mobile Auth fields
@@ -414,20 +415,42 @@ const AuthModal = ({ onClose }) => {
             <div className="form-group">
               <label className="input-label">Profile Avatar (Required)</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Feature: Avatar Live Preview */}
+                {avatarPreview ? (
+                  <img
+                    src={avatarPreview}
+                    alt="Avatar preview"
+                    style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)', flexShrink: 0 }}
+                  />
+                ) : (
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--bg-secondary)', border: '2px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Camera size={18} style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                )}
                 <label className="btn btn-secondary" style={{ flexGrow: 1, fontSize: '13px', cursor: 'pointer' }}>
                   <Camera size={16} />
-                  <span>Choose Avatar</span>
+                  <span>{avatar ? 'Change Avatar' : 'Choose Avatar'}</span>
                   <input
                     type="file"
-                    accept="image/*"
-                    onChange={(e) => setAvatar(e.target.files[0])}
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      if (!file.type.startsWith('image/')) {
+                        setErrorMsg('Please select a valid image file (JPG, PNG, WebP, GIF)');
+                        return;
+                      }
+                      if (file.size > 5 * 1024 * 1024) {
+                        setErrorMsg('Avatar image must be smaller than 5MB');
+                        return;
+                      }
+                      setAvatar(file);
+                      setAvatarPreview(URL.createObjectURL(file));
+                      setErrorMsg('');
+                    }}
                     style={{ display: 'none' }}
-                    required
                   />
                 </label>
-                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {avatar ? avatar.name : 'No file chosen'}
-                </span>
               </div>
             </div>
 
