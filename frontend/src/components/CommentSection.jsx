@@ -35,31 +35,38 @@ const CommentSection = ({ videoId }) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
+    // Optimistic UI: add comment immediately
+    const optimisticComment = {
+      _id: `optimistic-${Date.now()}`,
+      content: newComment,
+      createdAt: new Date().toISOString(),
+      owner: { fullName: user.fullName, username: user.username, avatar: user.avatar, _id: user._id }
+    };
+    setComments(prev => [optimisticComment, ...prev]);
+    setNewComment('');
+
     try {
-      const res = await axios.post(`/api/v1/comments/${videoId}`, {
-        content: newComment,
-      });
+      const res = await axios.post(`/api/v1/comments/${videoId}`, { content: optimisticComment.content });
       if (res.data?.success) {
-        setNewComment('');
-        fetchComments(); // Reload comments
-        showToast('Comment posted successfully!', 'success');
+        // Replace optimistic with real comment
+        setComments(prev => [res.data.data, ...prev.filter(c => c._id !== optimisticComment._id)]);
+        showToast('Comment posted!', 'success');
       }
     } catch (error) {
+      // Rollback
+      setComments(prev => prev.filter(c => c._id !== optimisticComment._id));
       showToast(error.response?.data?.message || 'Failed to post comment. Please try again.', 'error');
     }
   };
 
   const handleEditComment = async (commentId) => {
     if (!editingText.trim()) return;
-
     try {
-      const res = await axios.patch(`/api/v1/comments/c/${commentId}`, {
-        content: editingText,
-      });
+      const res = await axios.patch(`/api/v1/comments/c/${commentId}`, { content: editingText });
       if (res.data?.success) {
+        setComments(prev => prev.map(c => c._id === commentId ? { ...c, content: editingText } : c));
         setEditingCommentId(null);
         setEditingText('');
-        fetchComments();
         showToast('Comment updated successfully!', 'success');
       }
     } catch (error) {
@@ -69,12 +76,11 @@ const CommentSection = ({ videoId }) => {
 
   const handleDeleteComment = async (commentId) => {
     if (!window.confirm('Are you sure you want to delete this comment?')) return;
-
     try {
       const res = await axios.delete(`/api/v1/comments/c/${commentId}`);
       if (res.data?.success) {
-        fetchComments();
-        showToast('Comment deleted successfully!', 'success');
+        setComments(prev => prev.filter(c => c._id !== commentId));
+        showToast('Comment deleted!', 'success');
       }
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to delete comment. Please try again.', 'error');
