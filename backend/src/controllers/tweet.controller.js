@@ -2,11 +2,33 @@ import mongoose, { isValidObjectId } from "mongoose"
 import Tweet from "../models/tweet.models.js"
 // Modified by Antigravity: imported Like model for tweet deletion cascading cleanup
 import Like from "../models/like.models.js"
-// import {User} from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 
+// Feature: Get all tweets for global community feed (paginated)
+const getAllTweets = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+
+    const tweets = await Tweet.find()
+        .sort({ createdAt: -1 })
+        .skip((pageNumber - 1) * limitNumber)
+        .limit(limitNumber)
+        .populate("owner", "fullName avatar username")
+        .lean();
+
+    const totalTweets = await Tweet.countDocuments();
+    const totalPages = Math.ceil(totalTweets / limitNumber);
+
+    return res.status(200).json(
+        new ApiResponse(200, {
+            tweets,
+            pagination: { totalTweets, totalPages, currentPage: pageNumber, pageSize: limitNumber }
+        }, "Community tweets fetched successfully")
+    );
+});
 const createTweet = asyncHandler(async (req, res) => {
     const{content} =req.body
 
@@ -38,27 +60,13 @@ const getUserTweets = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid user id")
    }
    const tweets = await Tweet.find({owner: userId})
-   // Modified by Antigravity: return 200 with empty list instead of throwing 404 to avoid client crashes
-   if(!tweets || tweets.length === 0) {
-    return res
-     .status(200)
-     .json(
-         new ApiResponse(
-             200, 
-             [], 
-             "No tweets found for this user"
-         )
-     )
-   }
-   return res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200, 
-            tweets, 
-            "Tweets fetched successfully"
-        )
-    )
+       .sort({ createdAt: -1 })
+       .populate("owner", "fullName avatar username")
+       .lean();
+   // Return 200 with empty list instead of throwing 404
+   return res.status(200).json(
+       new ApiResponse(200, tweets, tweets.length === 0 ? "No tweets found for this user" : "Tweets fetched successfully")
+   );
 })
 
 const updateTweet = asyncHandler(async (req, res) => {
@@ -132,6 +140,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
 })
 
 export {
+    getAllTweets,
     createTweet,
     getUserTweets,
     updateTweet,
