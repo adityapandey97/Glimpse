@@ -23,8 +23,8 @@ const Dashboard = () => {
       // Fetch channel stats
       const statsRes = await axios.get('/api/v1/dashboard/stats');
       if (statsRes.data?.success) {
-        // Since aggregate returns array of user details
-        setStats(statsRes.data.data[0] || null);
+        // Backend now returns single object (fixed from array)
+        setStats(statsRes.data.data || null);
       }
 
       // Fetch channel videos
