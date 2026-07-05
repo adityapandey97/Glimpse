@@ -18,6 +18,15 @@ import { OAuth2Client } from "google-auth-library";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+const getCookieOptions = () => {
+    return {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+    };
+};
+
+
 
 
 const registerUser = asyncHandler(async (req, res, next) => {
@@ -169,11 +178,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
  
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
      
-    const  options ={
-        // here the bug fixed by copilot and the bug is httpsonly: true — should be httpOnly: true (cookies not protected!). Explanation: Incorrect property name meant cookies were not properly secured against client-side access.
-        httpOnly:true,
-        secure:true
-    }
+    const options = getCookieOptions();
 
     
     
@@ -212,11 +217,7 @@ const logoutUser = asyncHandler(async (req, res, next) => {
 );
 
 
-const  options ={
-        // here the bug fixed by copilot and the bug is httpsonly: true — should be httpOnly: true (cookies not protected!). Explanation: Incorrect property name meant cookies were not properly secured against client-side access.
-        httpOnly:true,
-        secure:true
-    }
+    const options = getCookieOptions();
 
 
 
@@ -258,11 +259,7 @@ const refreshAccessToken = asyncHandler(async (req, res, next) => {
     
         const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id);
     
-        const  options ={
-            // here the bug fixed by copilot and the bug is httpsonly: true — should be httpOnly: true (cookies not protected!). Explanation: Incorrect property name meant cookies were not properly secured against client-side access.
-            httpOnly:true,
-            secure:true 
-        }
+        const options = getCookieOptions();
     
         return res
         .status(200) 
@@ -465,11 +462,7 @@ const deleteUser = asyncHandler(async (req, res, next) => {
     // 7. Delete the user document itself
     await User.findByIdAndDelete(userId);
 
-    // 8. Clear the auth cookies
-    const options = {
-        httpOnly: true,
-        secure: true
-    };
+    const options = getCookieOptions();
 
     return res
         .status(200)
@@ -528,10 +521,7 @@ const socialLoginOrRegister = asyncHandler(async (req, res, next) => {
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-    const options = {
-        httpOnly: true,
-        secure: true
-    };
+    const options = getCookieOptions();
 
     return res
         .status(200)
@@ -618,10 +608,7 @@ const mobileLoginOrRegister = asyncHandler(async (req, res, next) => {
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-    const options = {
-        httpOnly: true,
-        secure: true
-    };
+    const options = getCookieOptions();
 
     return res
         .status(200)
@@ -695,10 +682,7 @@ const googleOAuthLogin = asyncHandler(async (req, res, next) => {
 
         const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-        const options = {
-            httpOnly: true,
-            secure: true
-        };
+        const options = getCookieOptions();
 
         return res
             .status(200)
