@@ -15,47 +15,15 @@ const TweetsView = () => {
   const [editingText, setEditingText] = useState('');
 
   const fetchTweets = async () => {
-    if (!user) {
-      // For guest users, load some mock community tweets
-      setTweets([
-        {
-          _id: 'mock1',
-          content: 'Building the new frontend with React + Vite! The Vanilla CSS design system is super clean. Glassmorphism rules! 🌟',
-          createdAt: new Date().toISOString(),
-          owner: {
-            fullName: 'Chai Creator',
-            username: 'chai_master',
-            avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=80&q=80'
-          }
-        },
-        {
-          _id: 'mock2',
-          content: 'Just deployed the backend API corrections. All mongoose model mismatches are solved. Ready for testing! 💻🚀',
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          owner: {
-            fullName: 'Antigravity AI',
-            username: 'antigravity_dev',
-            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80'
-          }
-        }
-      ]);
-      return;
-    }
-    
     try {
       setLoading(true);
-      // Fetch tweets created by this user
-      const res = await axios.get(`/api/v1/tweets/user/${user._id}`);
+      // Feature: Use global tweet feed — shows all users' tweets
+      const res = await axios.get('/api/v1/tweets/');
       if (res.data?.success) {
-        setTweets(res.data.data || []);
+        setTweets(res.data.data?.tweets || []);
       }
     } catch (error) {
-      if (error.response?.status === 404) {
-        // No tweets found is normal, empty the list
-        setTweets([]);
-      } else {
-        console.error('Error fetching tweets', error);
-      }
+      console.error('Error fetching tweets', error);
     } finally {
       setLoading(false);
     }
@@ -63,53 +31,61 @@ const TweetsView = () => {
 
   useEffect(() => {
     fetchTweets();
-  }, [user]);
+  }, []);
 
   const handleAddTweet = async (e) => {
     e.preventDefault();
     if (!newTweet.trim()) return;
 
+    // Optimistic UI: prepend the tweet immediately before server confirms
+    const optimisticTweet = {
+      _id: `optimistic-${Date.now()}`,
+      content: newTweet,
+      createdAt: new Date().toISOString(),
+      owner: { fullName: user.fullName, username: user.username, avatar: user.avatar, _id: user._id }
+    };
+    setTweets(prev => [optimisticTweet, ...prev]);
+    setNewTweet('');
+
     try {
-      const res = await axios.post('/api/v1/tweets/', {
-        content: newTweet
-      });
+      const res = await axios.post('/api/v1/tweets/', { content: optimisticTweet.content });
       if (res.data?.success) {
-        setNewTweet('');
-        fetchTweets();
-        showToast('Tweet posted successfully!', 'success');
+        // Replace optimistic tweet with real one from server
+        setTweets(prev => [res.data.data, ...prev.filter(t => t._id !== optimisticTweet._id)]);
+        showToast('Post shared with the community!', 'success');
       }
     } catch (error) {
-      showToast(error.response?.data?.message || 'Failed to post tweet', 'error');
+      // Rollback optimistic update
+      setTweets(prev => prev.filter(t => t._id !== optimisticTweet._id));
+      showToast(error.response?.data?.message || 'Failed to post. Please try again.', 'error');
     }
   };
 
   const handleEditTweet = async (tweetId) => {
     if (!editingText.trim()) return;
     try {
-      const res = await axios.patch(`/api/v1/tweets/${tweetId}`, {
-        content: editingText
-      });
+      const res = await axios.patch(`/api/v1/tweets/${tweetId}`, { content: editingText });
       if (res.data?.success) {
+        setTweets(prev => prev.map(t => t._id === tweetId ? { ...t, content: editingText } : t));
         setEditingTweetId(null);
         setEditingText('');
-        fetchTweets();
-        showToast('Tweet updated successfully!', 'success');
+        showToast('Post updated successfully!', 'success');
       }
     } catch (error) {
-      showToast(error.response?.data?.message || 'Failed to update tweet', 'error');
+      showToast(error.response?.data?.message || 'Failed to update post', 'error');
     }
   };
 
   const handleDeleteTweet = async (tweetId) => {
-    if (!window.confirm('Delete this tweet?')) return;
+    if (!window.confirm('Delete this post?')) return;
     try {
       const res = await axios.delete(`/api/v1/tweets/${tweetId}`);
       if (res.data?.success) {
-        fetchTweets();
-        showToast('Tweet deleted successfully!', 'success');
+        setTweets(prev => prev.filter(t => t._id !== tweetId));
+        showToast('Post deleted successfully!', 'success');
       }
     } catch (error) {
-      showToast(error.response?.data?.message || 'Failed to delete tweet', 'error');
+      showToast(error.response?.data?.message || 'Failed to delete post', 'error');
     }
   };
 
