@@ -9,12 +9,15 @@ import {
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 
 const router = Router();
-router.use(verifyJWT); // Apply verifyJWT middleware to all routes in this file
 
+// Fix #7: Public route — guests should be able to see reactions on videos
+router.route("/video/:videoId/reactions").get(getVideoReactions);
+
+// Protected routes — require authentication
+router.use(verifyJWT);
 router.route("/toggle/v/:videoId").post(toggleVideoLike);
 router.route("/toggle/c/:commentId").post(toggleCommentLike);
 router.route("/toggle/t/:tweetId").post(toggleTweetLike);
 router.route("/videos").get(getLikedVideos);
-router.route("/video/:videoId/reactions").get(getVideoReactions);
 
-export default router
+export default router
