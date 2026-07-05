@@ -14,7 +14,7 @@ import AuthModal from './components/AuthModal';
 import UploadModal from './components/UploadModal';
 import VideoCard from './components/VideoCard';
 import axios from 'axios';
-import { Heart, Play, Home, MessageSquare, MessageCircle, ListVideo, Tv, Settings, User, CheckCircle, AlertCircle, Info, X } from 'lucide-react';
+import { Heart, Play, Home, MessageSquare, MessageCircle, ListVideo, Tv, Settings, User, CheckCircle, AlertCircle, Info, X, Clock } from 'lucide-react';
 
 /* Modified by Antigravity: Fully Responsive App Layout with Mobile Bottom Navigation & Slide Drawer */
 function App() {
@@ -106,6 +106,8 @@ function App() {
         return <Dashboard />;
       case 'liked-videos':
         return <LikedVideosPage />;
+      case 'history':
+        return <WatchHistoryPage />;
       case 'settings':
         return <SettingsView />;
       default:
@@ -408,6 +410,83 @@ const LikedVideosPage = () => {
       ) : (
         <div className="grid-feed">
           {videos.map((video) => (
+            <VideoCard key={video._id} video={video} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* Feature: Watch History Page */
+const WatchHistoryPage = () => {
+  const { user, setActiveVideoId } = useContext(AppContext);
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const res = await axios.get('/api/v1/users/me');
+        if (res.data?.success && res.data.data?.watchHistory) {
+          // watchHistory contains populated video docs
+          setVideos(res.data.data.watchHistory || []);
+        }
+      } catch (error) {
+        console.error('Error fetching watch history', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [user]);
+
+  if (!user) {
+    return (
+      <div style={{ padding: '40px 24px', textAlign: 'center', flexGrow: 1 }}>
+        <h3>Please sign in to view your watch history.</h3>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ flexGrow: 1, padding: '24px', overflowY: 'auto' }} className="animate-fade">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
+        <Clock size={24} style={{ color: 'var(--primary)' }} />
+        <h2 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+          Watch History
+        </h2>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+          <div style={{
+            width: '30px', height: '30px',
+            border: '3px solid var(--border-color)',
+            borderTopColor: 'var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+        </div>
+      ) : videos.length === 0 ? (
+        <div style={{
+          textAlign: 'center', padding: '60px 24px',
+          background: 'var(--bg-secondary)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-color)',
+          color: 'var(--text-secondary)'
+        }}>
+          <Clock size={40} style={{ color: 'var(--text-muted)', marginBottom: '12px', display: 'inline-block' }} />
+          <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>No watch history yet</h3>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            Videos you watch will appear here automatically.
+          </p>
+        </div>
+      ) : (
+        <div className="grid-feed">
+          {videos.map((video) => video?._id && (
             <VideoCard key={video._id} video={video} />
           ))}
         </div>
