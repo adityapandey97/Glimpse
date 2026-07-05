@@ -28,6 +28,9 @@ const VideoPlayer = () => {
       if (res.data?.success) {
         setVideo(res.data.data);
         
+        // Feature: Increment view count (fire-and-forget, don't block UI)
+        axios.patch(`/api/v1/videos/${activeVideoId}/view`).catch(() => {});
+        
         // Fetch recommendations
         const recRes = await axios.get('/api/v1/videos/');
         if (recRes.data?.success) {
@@ -38,19 +41,21 @@ const VideoPlayer = () => {
         // Fetch channel followers count
         const channelId = res.data.data.owner?._id;
         if (channelId) {
-          const subCountRes = await axios.get(`/api/v1/follows/c/${channelId}`);
-          if (subCountRes.data?.success) {
-            setFollowersCount(subCountRes.data.data.length || 0);
-            
-            // Check if current user is following
-            if (user) {
-              const mySub = subCountRes.data.data.some(sub => sub.username === user.username);
-              setIsFollowing(mySub);
+          try {
+            const subCountRes = await axios.get(`/api/v1/follows/c/${channelId}`);
+            if (subCountRes.data?.success) {
+              setFollowersCount(subCountRes.data.data.length || 0);
+              if (user) {
+                const mySub = subCountRes.data.data.some(sub => sub.username === user.username);
+                setIsFollowing(mySub);
+              }
             }
+          } catch (err) {
+            // Guest or error fetching subscribers — non-fatal
           }
         }
 
-        // Check user reactions and emoji breakdown
+        // Check user reactions and emoji breakdown (now public for guests too)
         try {
           const reactionsRes = await axios.get(`/api/v1/likes/video/${activeVideoId}/reactions`);
           if (reactionsRes.data?.success) {
@@ -61,11 +66,12 @@ const VideoPlayer = () => {
             setIsLiked(!!uReact);
           }
         } catch (err) {
-          console.error("Error fetching reactions", err);
+          // Non-fatal — reactions failed to load
         }
       }
     } catch (error) {
       console.error('Error fetching video details', error);
+      showToast('Failed to load video. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -73,7 +79,7 @@ const VideoPlayer = () => {
 
   useEffect(() => {
     fetchVideoDetails();
-  }, [activeVideoId, user]);
+  }, [activeVideoId]);
 
   const handleReactionClick = async (emoji) => {
     if (!user) {
