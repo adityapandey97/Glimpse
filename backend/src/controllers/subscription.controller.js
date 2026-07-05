@@ -14,11 +14,12 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid Channel ID")
     }
 
-    const isSubscribed = await Subscription.findOne({ channel: channelId, subscriber: req.user._id });
-
-    if (req.user._id == channelId) {
-        throw new ApiError(400, "You can't subscribe your own channel.")
+    // Fix #8: Use strict string comparison (ObjectId vs string unreliable with ==)
+    if (req.user._id.toString() === channelId.toString()) {
+        throw new ApiError(400, "You cannot subscribe to your own channel.")
     }
+
+    const isSubscribed = await Subscription.findOne({ channel: channelId, subscriber: req.user._id });
 
     if (!isSubscribed) {
         const channel = await Subscription.create({
