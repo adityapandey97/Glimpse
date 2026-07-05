@@ -1,13 +1,10 @@
 import mongoose, { isValidObjectId } from "mongoose"
-// here the bug fixed by copilot and the bug is import { Video } from "../models/video.model.js" — wrong path AND named import on default export. Explanation: Wrong import path and syntax caused import error.
 import  Video  from "../models/video.models.js"
-// Modified by Antigravity: imported related models for video deletion cascading cleanup
 import Like from "../models/like.models.js"
 import Comment from "../models/comment.models.js"
 import Playlist from "../models/playlist.models.js"
-// Modified by Antigravity: imported cleanup utility to clear local temp files
+import User from "../models/user.models.js"
 import cleanupLocalFiles from "../utils/cleanup.js"
-// import { User } from "../models/user.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import ApiResponse  from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
@@ -163,9 +160,13 @@ const publishAVideo = asyncHandler(async (req, res) => {
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
+    const { videoId } = req.params;
 
-    const video = await Video.findById(videoId).populate("owner", "fullName avatar username")
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID");
+    }
+
+    const video = await Video.findById(videoId).populate("owner", "fullName avatar username");
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
@@ -173,6 +174,52 @@ const getVideoById = asyncHandler(async (req, res) => {
         new ApiResponse(200, video, "Video fetched successfully")
     );
 })
+
+// Feature #13: Increment view count and update watch history
+const incrementVideoView = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID");
+    }
+
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        { $inc: { views: 1 } },
+        { new: true }
+    );
+
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    // Add to watch history if user is authenticated (avoid duplicates, max 50)
+    if (req.user?._id) {
+        await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $pull: { watchHistory: videoId },  // Remove if already exists
+            },
+            { new: false }
+        );
+        await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $push: {
+                    watchHistory: {
+                        $each: [videoId],
+                        $position: 0,
+                        $slice: 50  // Keep only last 50
+                    }
+                }
+            }
+        );
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, { views: video.views }, "View recorded successfully")
+    );
+});
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
@@ -265,6 +312,7 @@ export {
     getAllVideos,
     publishAVideo,
     getVideoById,
+    incrementVideoView,
     updateVideo,
     deleteVideo,
     togglePublishStatus
