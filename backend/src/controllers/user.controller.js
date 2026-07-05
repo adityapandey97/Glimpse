@@ -32,51 +32,51 @@ const registerUser = asyncHandler(async (req, res, next) => {
         console.log("req.body:", req.body);
 
 
-        // this is use to check all field are provided or not
-        // and using the apierror to throw the error with status code and message in the proper way we desing it in utils/apiError.js
-        if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
+        // Fix #1: Check for missing/empty/undefined fields properly
+        if (!fullName || !email || !username || !password ||
+            [fullName, email, username, password].some((field) => field.trim() === "")) {
             throw new ApiError(400, "All fields are required");
         }
 
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            throw new ApiError(400, "Please provide a valid email address");
+        }
+
+        // Validate password strength
+        if (password.length < 6) {
+            throw new ApiError(400, "Password must be at least 6 characters long");
+        }
 
         // check if user with the same email or username already exists
-        // $or is a mongoDB operator to check multiple conditions(advanced query)
         const existedUser = await User.findOne({
-            $or: [{ username }, { email }]
+            $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
         });
         if (existedUser) {
-            throw new ApiError(409, "User with email or username already exists");
+            if (existedUser.username === username.toLowerCase()) {
+                throw new ApiError(409, `Username "${username}" is already taken. Please choose another.`);
+            }
+            throw new ApiError(409, "An account with this email already exists. Please sign in instead.");
         }
 
-
-        // ceck if files are uploaded
-        // as avtar is required so we go through this specif check but coverimage is not required so we dont need to check this in that manner but
-        // but still we can check if we want to store null or defauld vale to upload on cloudinary
+        // Check if files are uploaded
         const avatarLocalPath = req.files?.avatar?.[0]?.path;
-        // const coverImageLocalPath = req.files?.coverImage[0]?.path;
         let coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
-        // error resolved by copilot: improved file path access to prevent crashes when files are missing, using optional chaining for safer property access 
-
-        // required file so chek confiormly it was given or not  if not given then throw error
         if (!avatarLocalPath) {
-            throw new ApiError(400, "Avatar file is required");
+            throw new ApiError(400, "Profile avatar image is required to create your account");
         }
 
 
 
-        // upload files to cloudinary and get the uploaded file urls
-        // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
+        // Upload files to Cloudinary
         const avatar = await cloudinaryupload(avatarLocalPath);
         const coverImage = coverImageLocalPath ? await cloudinaryupload(coverImageLocalPath) : null;
 
-        // error resolved by copilot: made cover image upload conditional to handle cases where cover image is not provided, preventing unnecessary cloudinary calls
-
-
-
-        // again check if avatar upload was successfull or not
-        if (!avatar) {
-            throw new ApiError(400, "Avatar file is required");
+        // Fix #2: Better error message when Cloudinary upload fails
+        if (!avatar || !avatar.url) {
+            throw new ApiError(500, "Avatar image upload failed. Please try again with a smaller image.");
         }
 
 
@@ -115,49 +115,53 @@ const registerUser = asyncHandler(async (req, res, next) => {
     }
 });
 
-const generateAccessAndRefreshToken = async (userId)=>
-{
-    try{
-      const user= await User.findById(userId);
-      // here the bug fixed by copilot and the bug is user.genrateAccessToken() / user.genrateRefreshToken() — wrong method names. Explanation: Methods were named generateAccessToken and generateRefreshToken in model, causing method not found errors.
-      const accessToken= user.generateAccessToken();
-      const refreshToken= user.generateRefreshToken();
-      user.refreshToken= refreshToken;
-      await user.save();
-      return {accessToken, refreshToken};
-    } catch(error){
-      throw new ApiError(500, "Error generating tokens");
+const generateAccessAndRefreshToken = async (userId) => {
+    try {
+        const user = await User.findById(userId);
+        if (!user) throw new ApiError(404, "User not found");
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+        user.refreshToken = refreshToken;
+        // Fix #3 & #10: Skip bcrypt pre-save hook — avoids crashing social-login users with empty passwords
+        await user.save({ validateBeforeSave: false });
+        return { accessToken, refreshToken };
+    } catch (error) {
+        throw new ApiError(500, "Error generating authentication tokens");
     }
-    
 }
 
 
     
 const loginUser = asyncHandler(async (req, res, next) => {
-    const {username, email, password } = req.body;
+    const { username, email, password } = req.body;
 
-
-    if(!username && !email){
-        throw new ApiError(400, "Username or Email is required to login");
+    if (!username && !email) {
+        throw new ApiError(400, "Please provide your username or email address to login");
     }
 
-
-    if(!password){
+    if (!password) {
         throw new ApiError(400, "Password is required to login");
     }
 
     const user = await User.findOne({
-        $or: [{username}, {email}]
+        $or: [
+            { username: username?.toLowerCase() },
+            { email: email?.toLowerCase() }
+        ]
     });
-    
-    
-    if(!user){
-        throw new ApiError(404, "User does not exist");
+
+    if (!user) {
+        throw new ApiError(404, "No account found with this username or email. Please register first.");
     }
 
+    // Fix #4: Prevent OAuth users from logging in with password — security hole
+    if (user.provider && user.provider !== 'local') {
+        const providerName = user.provider.charAt(0).toUpperCase() + user.provider.slice(1);
+        throw new ApiError(400, `This account was created using ${providerName}. Please sign in with ${providerName} instead.`);
+    }
 
-    if(!(await user.isPasswordMatched(password))){
-        throw new ApiError(401, "Invalid credentials");
+    if (!(await user.isPasswordMatched(password))) {
+        throw new ApiError(401, "Incorrect password. Please try again.");
     }
     
 
@@ -278,34 +282,52 @@ const refreshAccessToken = asyncHandler(async (req, res, next) => {
 
 })
 
-const changeCurrentPassword = asyncHandler(async(req,res, next)=>{
-    const {oldPassword , newPassword} = req.body
+const changeCurrentPassword = asyncHandler(async (req, res, next) => {
+    const { oldPassword, newPassword } = req.body;
 
-    const user = await User.findById(req.user?._id)
-
-    // Modified by Antigravity: changed user.isPasswordCorrect to user.isPasswordMatched to match the schema methods
-    const isPasswordCorrect = await user.isPasswordMatched(oldPassword)
-
-    if(!isPasswordCorrect){
-        throw new ApiError(400, "Invalid old Password")
-    
+    // Fix #5: Validate new password
+    if (!oldPassword || !newPassword) {
+        throw new ApiError(400, "Both current and new passwords are required");
+    }
+    if (newPassword.length < 6) {
+        throw new ApiError(400, "New password must be at least 6 characters long");
+    }
+    if (oldPassword === newPassword) {
+        throw new ApiError(400, "New password must be different from your current password");
     }
 
-    user.password=newPassword
-    await user.save({validateBeforeSave:false })
+    const user = await User.findById(req.user?._id);
+    if (!user) throw new ApiError(404, "User not found");
 
-    return res 
-    .status(200)
-    .json(new ApiResponse(200, {}, "password reset successfully"))
+    const isPasswordCorrect = await user.isPasswordMatched(oldPassword);
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Your current password is incorrect");
+    }
 
-
-})
-
-const getCurrentUser = asyncHandler(async(req,res, next)=>{
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
 
     return res
-    .status(200)
-    .json(new ApiResponse(200, req.user, "current user fetched successfully"))
+        .status(200)
+        .json(new ApiResponse(200, {}, "Password changed successfully"));
+})
+
+const getCurrentUser = asyncHandler(async (req, res, next) => {
+    // Populate watchHistory with full video details for the Watch History page
+    const user = await User.findById(req.user._id)
+        .select("-password -refreshToken")
+        .populate({
+            path: "watchHistory",
+            select: "title thumbnail views duration owner createdAt",
+            populate: {
+                path: "owner",
+                select: "fullName avatar username"
+            }
+        });
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user, "Current user fetched successfully"));
 })
 
 const updateAccountDetails = asyncHandler(async(req,res, next)=>{
@@ -334,72 +356,62 @@ const updateAccountDetails = asyncHandler(async(req,res, next)=>{
 
 })
 
-const updateUserAvtar = asyncHandler(async(req,res, next)=>{
+const updateUserAvtar = asyncHandler(async (req, res, next) => {
     try {
-        const avatarLocalPath = req.file?.path
+        const avatarLocalPath = req.file?.path;
 
-        if(!avatarLocalPath){
-            throw new ApiError(400 , "avatar not found in local path")
+        if (!avatarLocalPath) {
+            throw new ApiError(400, "Please provide an avatar image file to upload");
         }
 
-        // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
-        const avatar = await cloudinaryupload(avatarLocalPath)
+        const avatar = await cloudinaryupload(avatarLocalPath);
 
-        if(!avatar.url){
-            throw new ApiError(400, "not uploaded on cloud")
+        // Fix #6: Proper null-safe check with correct error message
+        if (!avatar || !avatar.url) {
+            throw new ApiError(500, "Avatar image upload failed. Please try again.");
         }
 
         const user = await User.findByIdAndUpdate(
             req.user?._id,
-            {
-                $set:{
-                    avatar:avatar.url
-                }
-            },
-            {new : true}
-        ).select("-password")
+            { $set: { avatar: avatar.url } },
+            { new: true }
+        ).select("-password");
 
         return res
-        .status(200)
-        .json(new ApiResponse( 200 ,user,"update avatar successfully"))
+            .status(200)
+            .json(new ApiResponse(200, user, "Profile photo updated successfully"));
     } catch (error) {
-        // Modified by Antigravity: Cleanup local uploaded temp files on error
         cleanupLocalFiles(req);
         throw error;
     }
 })
 
 
-const updateUsercoverImage = asyncHandler(async(req,res, next)=>{
+const updateUsercoverImage = asyncHandler(async (req, res, next) => {
     try {
-        const coverImageLocalPath = req.file?.path
+        const coverImageLocalPath = req.file?.path;
 
-        if(!coverImageLocalPath){
-            throw new ApiError(400 , "avatar not found in local path")
+        if (!coverImageLocalPath) {
+            throw new ApiError(400, "Please provide a cover image file to upload");
         }
 
-        // error resolved by copilot: function name mismatch - imported as cloudinaryupload but called as uploadOnCloudinary, causing "uploadOnCloudinary is not defined" error
-        const coverImage = await cloudinaryupload(coverImageLocalPath)
+        const coverImage = await cloudinaryupload(coverImageLocalPath);
 
-        if(!coverImage.url){
-            throw new ApiError(400, "not uploaded on cloud")
+        // Fix #6: Proper null-safe check with correct error message for cover image
+        if (!coverImage || !coverImage.url) {
+            throw new ApiError(500, "Cover image upload failed. Please try again.");
         }
 
         const user = await User.findByIdAndUpdate(
             req.user?._id,
-            {
-                $set:{
-                    coverImage:coverImage.url
-                }
-            },
-            {new : true}
-        ).select("-password")
+            { $set: { coverImage: coverImage.url } },
+            { new: true }
+        ).select("-password");
 
         return res
-        .status(200)
-        .json(new ApiResponse( 200 ,user,"update coverImage successfully"))
+            .status(200)
+            .json(new ApiResponse(200, user, "Cover image updated successfully"));
     } catch (error) {
-        // Modified by Antigravity: Cleanup local uploaded temp files on error
         cleanupLocalFiles(req);
         throw error;
     }
