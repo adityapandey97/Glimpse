@@ -5,7 +5,7 @@ import { MessageSquare, Send, Heart, Trash2, Edit2, Check, X, Sparkles } from 'l
 
 /* Modified by Antigravity: Premium Social Feed (Tweets/Thoughts) */
 const TweetsView = () => {
-  const { user } = useContext(AppContext);
+  const { user, showToast } = useContext(AppContext);
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newTweet, setNewTweet] = useState('');
@@ -76,9 +76,10 @@ const TweetsView = () => {
       if (res.data?.success) {
         setNewTweet('');
         fetchTweets();
+        showToast('Tweet posted successfully!', 'success');
       }
     } catch (error) {
-      alert('Failed to post tweet');
+      showToast(error.response?.data?.message || 'Failed to post tweet', 'error');
     }
   };
 
@@ -92,9 +93,10 @@ const TweetsView = () => {
         setEditingTweetId(null);
         setEditingText('');
         fetchTweets();
+        showToast('Tweet updated successfully!', 'success');
       }
     } catch (error) {
-      alert('Failed to update tweet');
+      showToast(error.response?.data?.message || 'Failed to update tweet', 'error');
     }
   };
 
@@ -104,9 +106,10 @@ const TweetsView = () => {
       const res = await axios.delete(`/api/v1/tweets/${tweetId}`);
       if (res.data?.success) {
         fetchTweets();
+        showToast('Tweet deleted successfully!', 'success');
       }
     } catch (error) {
-      alert('Failed to delete tweet');
+      showToast(error.response?.data?.message || 'Failed to delete tweet', 'error');
     }
   };
 

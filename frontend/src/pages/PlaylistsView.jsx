@@ -5,7 +5,7 @@ import { ListVideo, Plus, FolderHeart, Play, Clock } from 'lucide-react';
 
 /* Modified by Antigravity: Playlist Management Page */
 const PlaylistsView = () => {
-  const { user, setActiveVideoId } = useContext(AppContext);
+  const { user, setActiveVideoId, showToast } = useContext(AppContext);
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -49,9 +49,10 @@ const PlaylistsView = () => {
         setDescription('');
         setShowCreate(false);
         fetchPlaylists();
+        showToast('Playlist created successfully!', 'success');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating playlist');
+      showToast(error.response?.data?.message || 'Error creating playlist', 'error');
     }
   };
 
@@ -62,7 +63,7 @@ const PlaylistsView = () => {
         setSelectedPlaylist(res.data.data);
       }
     } catch (error) {
-      alert('Failed to load playlist details');
+      showToast(error.response?.data?.message || 'Failed to load playlist details', 'error');
     }
   };
 

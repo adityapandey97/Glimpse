@@ -4,7 +4,7 @@ import axios from 'axios';
 import { MessageSquare, Send, Image, Video, X, User, Paperclip, AlertCircle, Smile, ArrowLeft } from 'lucide-react';
 
 const ChatView = () => {
-  const { user } = useContext(AppContext);
+  const { user, showToast } = useContext(AppContext);
   const [connections, setConnections] = useState([]);
   const [selectedConnection, setSelectedConnection] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -136,7 +136,7 @@ const ChatView = () => {
         setVideoPreview(null);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to send message');
+      showToast(err.response?.data?.message || 'Failed to send message. Please try again.', 'error');
     } finally {
       setSending(false);
     }

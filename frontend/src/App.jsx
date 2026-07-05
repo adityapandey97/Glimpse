@@ -14,11 +14,11 @@ import AuthModal from './components/AuthModal';
 import UploadModal from './components/UploadModal';
 import VideoCard from './components/VideoCard';
 import axios from 'axios';
-import { Heart, Play, Home, MessageSquare, MessageCircle, ListVideo, Tv, Settings, User } from 'lucide-react';
+import { Heart, Play, Home, MessageSquare, MessageCircle, ListVideo, Tv, Settings, User, CheckCircle, AlertCircle, Info, X } from 'lucide-react';
 
 /* Modified by Antigravity: Fully Responsive App Layout with Mobile Bottom Navigation & Slide Drawer */
 function App() {
-  const { user, loadingUser, activeTab, setActiveTab, activeVideoId, setActiveVideoId } = useContext(AppContext);
+  const { user, loadingUser, activeTab, setActiveTab, activeVideoId, setActiveVideoId, toasts, setToasts } = useContext(AppContext);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -260,6 +260,72 @@ function App() {
         />
       )}
       
+      {/* Toast Notification Container */}
+      <div style={{
+        position: 'fixed',
+        top: '24px',
+        right: '24px',
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        maxWidth: '380px',
+        width: 'calc(100% - 48px)',
+        pointerEvents: 'none'
+      }}>
+        {toasts.map((toast) => {
+          const isError = toast.type === 'error';
+          const isWarning = toast.type === 'warning';
+          const isInfo = toast.type === 'info';
+          const borderColor = isError ? 'var(--danger)' : isWarning ? 'var(--warning)' : isInfo ? 'var(--info)' : 'var(--success)';
+          const IconComponent = isError ? AlertCircle : isWarning ? AlertCircle : isInfo ? Info : CheckCircle;
+          const iconColor = isError ? 'var(--danger)' : isWarning ? 'var(--warning)' : isInfo ? 'var(--info)' : 'var(--success)';
+
+          return (
+            <div
+              key={toast.id}
+              className="toast-animation glass-panel"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '14px 18px',
+                borderRadius: 'var(--radius-md)',
+                border: `1px solid ${borderColor}`,
+                background: 'var(--bg-glass)',
+                boxShadow: 'var(--shadow-lg)',
+                color: 'var(--text-primary)',
+                fontSize: '14px',
+                fontWeight: '550',
+                pointerEvents: 'auto',
+                transition: 'all var(--transition-fast)'
+              }}
+            >
+              <IconComponent size={18} style={{ color: iconColor, flexShrink: 0 }} />
+              <span style={{ flexGrow: 1, lineHeight: '1.4' }}>{toast.message}</span>
+              <button
+                onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '2px',
+                  opacity: 0.7,
+                  transition: 'opacity var(--transition-fast)'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Hide Sidebar Desktop class at mobile breakpoint */}
       <style>{`
         @media (max-width: 991px) {

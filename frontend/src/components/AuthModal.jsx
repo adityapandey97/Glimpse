@@ -14,7 +14,7 @@ const GoogleIcon = () => (
 );
 
 const AuthModal = ({ onClose }) => {
-  const { login, register, checkAuth } = useContext(AppContext);
+  const { login, register, checkAuth, showToast } = useContext(AppContext);
   const [isLogin, setIsLogin] = useState(true);
   
   // Custom auth mode selection for login ('email' | 'mobile')
@@ -51,12 +51,15 @@ const AuthModal = ({ onClose }) => {
     try {
       const res = await login(loginId, loginPassword);
       if (res.success) {
+        showToast('Welcome back! Successfully logged in.', 'success');
         onClose();
       } else {
         setErrorMsg(res.message);
+        showToast(res.message, 'error');
       }
     } catch (err) {
       setErrorMsg('Invalid login credentials or server error');
+      showToast('Invalid login credentials or server error', 'error');
     } finally {
       setLoading(false);
     }
@@ -87,16 +90,21 @@ const AuthModal = ({ onClose }) => {
       if (res?.success) {
         const loginRes = await login(email, password);
         if (loginRes.success) {
+          showToast('Account created and successfully logged in!', 'success');
           onClose();
         } else {
           setIsLogin(true);
           setErrorMsg('Registration successful! Please log in.');
+          showToast('Account created successfully! Please log in.', 'success');
         }
       } else {
         setErrorMsg(res?.message || 'Registration failed');
+        showToast(res?.message || 'Registration failed', 'error');
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Error occurred during registration');
+      const errMsg = err.response?.data?.message || 'Error occurred during registration';
+      setErrorMsg(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setLoading(false);
     }
@@ -119,12 +127,13 @@ const AuthModal = ({ onClose }) => {
         setTimeout(() => {
           setOtpSent(true);
           setLoading(false);
-          alert(`[SIMULATION] Verification SMS sent to +91 ${mobileNumber}. Default OTP is 1234.`);
+          showToast(`[SIMULATION] Verification SMS sent to +91 ${mobileNumber}. Default OTP is 1234.`, 'info');
         }, 800);
       } else {
         // Verify simulated OTP
         if (otpCode !== '1234') {
           setErrorMsg('Invalid simulated verification code (Use 1234)');
+          showToast('Invalid simulated verification code (Use 1234)', 'error');
           setLoading(false);
           return;
         }
@@ -136,13 +145,17 @@ const AuthModal = ({ onClose }) => {
         });
         if (res.data?.success) {
           await checkAuth();
+          showToast('Successfully logged in via mobile OTP!', 'success');
           onClose();
         } else {
           setErrorMsg(res.data?.message || 'Mobile OTP authentication failed');
+          showToast(res.data?.message || 'Mobile OTP authentication failed', 'error');
         }
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Mobile authentication failed');
+      const errMsg = err.response?.data?.message || 'Mobile authentication failed';
+      setErrorMsg(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setLoading(false);
     }
@@ -158,12 +171,16 @@ const AuthModal = ({ onClose }) => {
       });
       if (res.data?.success) {
         await checkAuth();
+        showToast('Successfully logged in with Google!', 'success');
         onClose();
       } else {
         setErrorMsg(res.data?.message || 'Google authentication failed');
+        showToast(res.data?.message || 'Google authentication failed', 'error');
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Google token verification failed');
+      const errMsg = err.response?.data?.message || 'Google token verification failed';
+      setErrorMsg(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setLoading(false);
     }

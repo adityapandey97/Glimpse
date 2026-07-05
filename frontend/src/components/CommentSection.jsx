@@ -5,7 +5,7 @@ import { Send, Trash2, Edit2, Check, X, MessageSquare } from 'lucide-react';
 
 /* Modified by Antigravity: Interactive Comments Section */
 const CommentSection = ({ videoId }) => {
-  const { user } = useContext(AppContext);
+  const { user, showToast } = useContext(AppContext);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
@@ -42,9 +42,10 @@ const CommentSection = ({ videoId }) => {
       if (res.data?.success) {
         setNewComment('');
         fetchComments(); // Reload comments
+        showToast('Comment posted successfully!', 'success');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Error posting comment');
+      showToast(error.response?.data?.message || 'Failed to post comment. Please try again.', 'error');
     }
   };
 
@@ -59,9 +60,10 @@ const CommentSection = ({ videoId }) => {
         setEditingCommentId(null);
         setEditingText('');
         fetchComments();
+        showToast('Comment updated successfully!', 'success');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating comment');
+      showToast(error.response?.data?.message || 'Failed to update comment. Please try again.', 'error');
     }
   };
 
@@ -72,9 +74,10 @@ const CommentSection = ({ videoId }) => {
       const res = await axios.delete(`/api/v1/comments/c/${commentId}`);
       if (res.data?.success) {
         fetchComments();
+        showToast('Comment deleted successfully!', 'success');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Error deleting comment');
+      showToast(error.response?.data?.message || 'Failed to delete comment. Please try again.', 'error');
     }
   };
 

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { X, Film, Image, Type, FileText, Upload, AlertCircle } from 'lucide-react';
+import { AppContext } from '../context/AppContext';
 
 /* Modified by Antigravity: Interactive Video Upload Modal */
 const UploadModal = ({ onClose, onUploadSuccess }) => {
+  const { showToast } = useContext(AppContext);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [videoFile, setVideoFile] = useState(null);
@@ -42,14 +44,17 @@ const UploadModal = ({ onClose, onUploadSuccess }) => {
       });
 
       if (res.data?.success) {
-        alert('Video uploaded successfully!');
+        showToast('Video uploaded successfully!', 'success');
         if (onUploadSuccess) onUploadSuccess();
         onClose();
       } else {
         setErrorMsg(res.data?.message || 'Failed to upload video');
+        showToast(res.data?.message || 'Failed to upload video', 'error');
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Error occurred while uploading video');
+      const errMsg = err.response?.data?.message || 'Error occurred while uploading video';
+      setErrorMsg(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setLoading(false);
       setProgress(0);

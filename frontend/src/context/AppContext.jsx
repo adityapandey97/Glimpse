@@ -15,11 +15,20 @@ export const AppProvider = ({ children }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('home'); // 'home', 'dashboard', 'liked-videos', 'playlists', 'tweets'
   const [activeVideoId, setActiveVideoId] = useState(null); // Shows video player overlay when set
+  const [toasts, setToasts] = useState([]);
 
   // Sync theme with body attribute for Vanilla CSS variables mapping
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  const showToast = (message, type = 'success') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4500);
+  };
 
   // Check user authentication status on load
   const checkAuth = async () => {
@@ -43,31 +52,45 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const login = async (usernameOrEmail, password) => {
-    // Backend expects either username or email and password
-    const payload = {};
-    if (usernameOrEmail.includes('@')) {
-      payload.email = usernameOrEmail;
-    } else {
-      payload.username = usernameOrEmail;
-    }
-    payload.password = password;
+    try {
+      // Backend expects either username or email and password
+      const payload = {};
+      if (usernameOrEmail.includes('@')) {
+        payload.email = usernameOrEmail;
+      } else {
+        payload.username = usernameOrEmail;
+      }
+      payload.password = password;
 
-    const res = await axios.post('/api/v1/users/login', payload);
-    if (res.data?.success) {
-      setUser(res.data.data.user);
-      return { success: true };
+      const res = await axios.post('/api/v1/users/login', payload);
+      if (res.data?.success) {
+        setUser(res.data.data.user);
+        return { success: true };
+      }
+      return { success: false, message: res.data?.message || 'Login failed' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Login failed'
+      };
     }
-    return { success: false, message: res.data?.message || 'Login failed' };
   };
 
   const register = async (formData) => {
-    // formData must be a FormData instance due to avatar/coverImage file uploads
-    const res = await axios.post('/api/v1/users/register', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return res.data;
+    try {
+      // formData must be a FormData instance due to avatar/coverImage file uploads
+      const res = await axios.post('/api/v1/users/register', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return res.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Registration failed'
+      };
+    }
   };
 
   const logout = async () => {
@@ -104,6 +127,9 @@ export const AppProvider = ({ children }) => {
         login,
         register,
         logout,
+        toasts,
+        setToasts,
+        showToast,
       }}
     >
       {children}

@@ -5,7 +5,7 @@ import { Settings, User, Key, Camera, Check, ShieldAlert } from 'lucide-react';
 
 /* Modified by Antigravity: Settings & Profile Management Page */
 const SettingsView = () => {
-  const { user, checkAuth } = useContext(AppContext);
+  const { user, checkAuth, showToast } = useContext(AppContext);
 
   // Profile fields
   const [fullName, setFullName] = useState(user?.fullName || '');
@@ -36,11 +36,11 @@ const SettingsView = () => {
         email
       });
       if (res.data?.success) {
-        alert('Account details updated successfully!');
+        showToast('Account details updated successfully!', 'success');
         checkAuth();
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to update account details');
+      showToast(error.response?.data?.message || 'Failed to update account details', 'error');
     } finally {
       setProfileLoading(false);
     }
@@ -50,7 +50,7 @@ const SettingsView = () => {
     e.preventDefault();
     if (!oldPassword || !newPassword || !confirmPassword) return;
     if (newPassword !== confirmPassword) {
-      alert("New passwords do not match!");
+      showToast("New passwords do not match!", "error");
       return;
     }
     try {
@@ -60,13 +60,13 @@ const SettingsView = () => {
         newPassword
       });
       if (res.data?.success) {
-        alert('Password updated successfully!');
+        showToast('Password updated successfully!', 'success');
         setOldPassword('');
         setNewPassword('');
         setConfirmPassword('');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to change password');
+      showToast(error.response?.data?.message || 'Failed to change password', 'error');
     } finally {
       setPasswordLoading(false);
     }
@@ -84,12 +84,12 @@ const SettingsView = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data?.success) {
-        alert('Avatar updated successfully!');
+        showToast('Avatar updated successfully!', 'success');
         setAvatarFile(null);
         checkAuth();
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to upload avatar');
+      showToast(error.response?.data?.message || 'Failed to upload avatar', 'error');
     } finally {
       setAvatarLoading(false);
     }
@@ -107,12 +107,12 @@ const SettingsView = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data?.success) {
-        alert('Cover image updated successfully!');
+        showToast('Cover image updated successfully!', 'success');
         setCoverFile(null);
         checkAuth();
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to upload cover image');
+      showToast(error.response?.data?.message || 'Failed to upload cover image', 'error');
     } finally {
       setCoverLoading(false);
     }
@@ -127,18 +127,20 @@ const SettingsView = () => {
     // Double confirmation
     const confirmUsername = window.prompt(`Please type your username "${user.username}" to confirm deletion:`);
     if (!confirmUsername || confirmUsername.toLowerCase() !== user.username.toLowerCase()) {
-      alert("Username confirmation failed. Account deletion cancelled.");
+      showToast("Username confirmation failed. Account deletion cancelled.", "warning");
       return;
     }
 
     try {
       const res = await axios.delete('/api/v1/users/delete-account');
       if (res.data?.success) {
-        alert("Your account and all associated data have been permanently deleted.");
-        window.location.reload();
+        showToast("Your account has been permanently deleted.", "success");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to delete account');
+      showToast(error.response?.data?.message || 'Failed to delete account', 'error');
     }
   };
 

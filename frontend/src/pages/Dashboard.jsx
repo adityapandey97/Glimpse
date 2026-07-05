@@ -5,7 +5,7 @@ import { LayoutDashboard, Users, Eye, Heart, Film, Globe, Lock, Trash2, Edit2, C
 
 /* Modified by Antigravity: Channel Dashboard & Analytics page */
 const Dashboard = () => {
-  const { user, setActiveTab } = useContext(AppContext);
+  const { user, setActiveTab, showToast } = useContext(AppContext);
   const [stats, setStats] = useState(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,9 +49,10 @@ const Dashboard = () => {
       if (res.data?.success) {
         // Update local state
         setVideos(prev => prev.map(v => v._id === videoId ? { ...v, isPublished: !v.isPublished } : v));
+        showToast('Video visibility updated successfully!', 'success');
       }
     } catch (error) {
-      alert('Failed to toggle publish status');
+      showToast(error.response?.data?.message || 'Failed to toggle publish status', 'error');
     }
   };
 
@@ -65,9 +66,10 @@ const Dashboard = () => {
       if (res.data?.success) {
         setVideos(prev => prev.map(v => v._id === videoId ? { ...v, title: editTitle, description: editDescription } : v));
         setEditingVideoId(null);
+        showToast('Video details updated successfully!', 'success');
       }
     } catch (error) {
-      alert('Failed to update video metadata');
+      showToast(error.response?.data?.message || 'Failed to update video metadata', 'error');
     }
   };
 
@@ -77,9 +79,10 @@ const Dashboard = () => {
       const res = await axios.delete(`/api/v1/videos/${videoId}`);
       if (res.data?.success) {
         setVideos(prev => prev.filter(v => v._id !== videoId));
+        showToast('Video deleted successfully!', 'success');
       }
     } catch (error) {
-      alert('Failed to delete video');
+      showToast(error.response?.data?.message || 'Failed to delete video', 'error');
     }
   };
 

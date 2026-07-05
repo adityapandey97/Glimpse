@@ -6,7 +6,7 @@ import { ThumbsUp, UserPlus, UserMinus, Eye, Calendar, Sparkles, ArrowLeft } fro
 
 /* Modified by Antigravity: Premium YouTube/Instagram Video Player Page */
 const VideoPlayer = () => {
-  const { user, activeVideoId, setActiveVideoId } = useContext(AppContext);
+  const { user, activeVideoId, setActiveVideoId, showToast } = useContext(AppContext);
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState([]);
@@ -77,7 +77,7 @@ const VideoPlayer = () => {
 
   const handleReactionClick = async (emoji) => {
     if (!user) {
-      alert('Please sign in to react to videos');
+      showToast('Please sign in to react to videos', 'warning');
       return;
     }
     try {
@@ -92,6 +92,7 @@ const VideoPlayer = () => {
             ...prev,
             [emoji]: Math.max(0, (prev[emoji] || 0) - 1)
           }));
+          showToast('Reaction removed', 'info');
         } else {
           setUserReaction(emoji);
           setIsLiked(true);
@@ -105,17 +106,18 @@ const VideoPlayer = () => {
             nextReactions[emoji] = (nextReactions[emoji] || 0) + 1;
             return nextReactions;
           });
+          showToast(`Reacted with ${emoji}!`, 'success');
         }
         setShowEmojiBar(false);
       }
     } catch (error) {
-      console.error('Error updating reaction', error);
+      showToast(error.response?.data?.message || 'Error updating reaction', 'error');
     }
   };
 
   const handleToggleLike = async () => {
     if (!user) {
-      alert('Please sign in to like videos');
+      showToast('Please sign in to like videos', 'warning');
       return;
     }
     const emojiToToggle = userReaction || "👍";
@@ -124,22 +126,24 @@ const VideoPlayer = () => {
 
   const handleToggleFollow = async () => {
     if (!user) {
-      alert('Please sign in to follow creators');
+      showToast('Please sign in to follow creators', 'warning');
       return;
     }
     const channelId = video?.owner?._id;
     if (channelId === user._id) {
-      alert("You cannot follow yourself!");
+      showToast("You cannot follow yourself!", 'warning');
       return;
     }
     try {
       const res = await axios.post(`/api/v1/follows/c/${channelId}`);
       if (res.data?.success) {
-        setIsFollowing(!isFollowing);
+        const nextFollowing = !isFollowing;
+        setIsFollowing(nextFollowing);
         setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1);
+        showToast(nextFollowing ? 'Creator followed successfully!' : 'Creator unfollowed successfully!', 'success');
       }
     } catch (error) {
-      console.error('Error toggling follow', error);
+      showToast(error.response?.data?.message || 'Error updating follow status', 'error');
     }
   };
 
