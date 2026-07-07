@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import CommentSection from '../components/CommentSection';
 import axios from 'axios';
-import { ThumbsUp, UserPlus, UserMinus, Eye, Calendar, Sparkles, ArrowLeft } from 'lucide-react';
+import { ThumbsUp, UserPlus, UserMinus, Eye, Calendar, Sparkles, ArrowLeft, ListVideo } from 'lucide-react';
 
 /* Modified by Antigravity: Premium YouTube/Instagram Video Player Page */
 const VideoPlayer = () => {
@@ -19,6 +19,12 @@ const VideoPlayer = () => {
   const [reactionsBreakdown, setReactionsBreakdown] = useState({ "👍": 0, "❤️": 0, "😂": 0, "😮": 0, "😢": 0, "😡": 0 });
   const [totalLikesCount, setTotalLikesCount] = useState(0);
   const [showEmojiBar, setShowEmojiBar] = useState(false);
+
+  // Playlist states
+  const [playlists, setPlaylists] = useState([]);
+  const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+
 
   const fetchVideoDetails = async () => {
     if (!activeVideoId) return;
@@ -152,6 +158,59 @@ const VideoPlayer = () => {
       showToast(error.response?.data?.message || 'Error updating follow status', 'error');
     }
   };
+
+  const fetchPlaylists = async () => {
+    if (!user) return;
+    try {
+      setLoadingPlaylists(true);
+      const res = await axios.get(`/api/v1/playlist/user/${user._id}`);
+      if (res.data?.success) {
+        setPlaylists(res.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching playlists:", error);
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  };
+
+  const handleTogglePlaylist = async (playlistId, isAlreadyInPlaylist) => {
+    try {
+      const endpoint = isAlreadyInPlaylist 
+        ? `/api/v1/playlist/remove/${playlistId}/${activeVideoId}`
+        : `/api/v1/playlist/add/${playlistId}/${activeVideoId}`;
+      const res = await axios.patch(endpoint);
+      if (res.data?.success) {
+        showToast(isAlreadyInPlaylist ? 'Video removed from playlist' : 'Video added to playlist', 'success');
+        setPlaylists(prev => prev.map(p => {
+          if (p._id === playlistId) {
+            return {
+              ...p,
+              videos: isAlreadyInPlaylist 
+                ? p.videos.filter(id => id !== activeVideoId)
+                : [...p.videos, activeVideoId]
+            };
+          }
+          return p;
+        }));
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Error updating playlist', 'error');
+    }
+  };
+
+  const handlePlaylistButtonClick = () => {
+    if (!user) {
+      showToast('Please sign in to manage playlists', 'warning');
+      return;
+    }
+    const nextShow = !showPlaylistDropdown;
+    setShowPlaylistDropdown(nextShow);
+    if (nextShow) {
+      fetchPlaylists();
+    }
+  };
+
 
   if (loading) {
     return (
@@ -375,6 +434,81 @@ const VideoPlayer = () => {
                       </span>
                     ))
                   }
+                </div>
+              )}
+            </div>
+
+            {/* Feature: Add to Playlist Trigger and Popover */}
+            <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+              <button
+                onClick={handlePlaylistButtonClick}
+                className="btn btn-secondary"
+                style={{ 
+                  borderRadius: 'var(--radius-full)', 
+                  padding: '8px 18px', 
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <ListVideo size={16} />
+                <span>Add to Playlist</span>
+              </button>
+
+              {showPlaylistDropdown && (
+                <div style={{
+                  position: 'absolute',
+                  top: '45px',
+                  right: '0',
+                  background: 'rgba(30, 30, 40, 0.98)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '16px',
+                  width: '260px',
+                  boxShadow: 'var(--shadow-lg)',
+                  zIndex: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }}>Select Playlist</span>
+                    <button 
+                      onClick={() => setShowPlaylistDropdown(false)} 
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  {loadingPlaylists ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '12px' }}>
+                      <div style={{ width: '16px', height: '16px', border: '2px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    </div>
+                  ) : playlists.length === 0 ? (
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', padding: '6px 0' }}>
+                      No playlists found. Create one in the Playlists tab!
+                    </span>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+                      {playlists.map(p => {
+                        const isAlreadyInPlaylist = p.videos?.includes(activeVideoId);
+                        return (
+                          <label key={p._id} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+                            <input
+                              type="checkbox"
+                              checked={isAlreadyInPlaylist || false}
+                              onChange={() => handleTogglePlaylist(p._id, isAlreadyInPlaylist)}
+                              style={{ accentColor: 'var(--primary)', width: '14px', height: '14px' }}
+                            />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
