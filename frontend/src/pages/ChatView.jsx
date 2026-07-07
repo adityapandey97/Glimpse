@@ -22,6 +22,17 @@ const ChatView = () => {
   // Search connection
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Msg reactions
+  const [msgReactions, setMsgReactions] = useState({});
+
+  const handleReactToMessage = (msgId, emoji) => {
+    setMsgReactions(prev => ({
+      ...prev,
+      [msgId]: prev[msgId] === emoji ? null : emoji
+    }));
+  };
+
+
   // Responsive mobile state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -67,6 +78,18 @@ const ChatView = () => {
     }
   };
 
+  // Fetch message history silently for polling updates
+  const fetchMessagesSilent = async (connectionId) => {
+    try {
+      const res = await axios.get(`/api/v1/chat/history/${connectionId}`);
+      if (res.data?.success) {
+        setMessages(res.data.data || []);
+      }
+    } catch (err) {
+      console.error('Silent message fetch failed', err);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchConnections();
@@ -74,10 +97,19 @@ const ChatView = () => {
   }, [user]);
 
   useEffect(() => {
-    if (selectedConnection) {
-      fetchMessages(selectedConnection._id);
-    }
+    if (!selectedConnection) return;
+    
+    // Initial load
+    fetchMessages(selectedConnection._id);
+
+    // Poll for new messages every 4 seconds
+    const interval = setInterval(() => {
+      fetchMessagesSilent(selectedConnection._id);
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, [selectedConnection]);
+
 
   // Scroll to bottom
   useEffect(() => {
@@ -229,11 +261,25 @@ const ChatView = () => {
                       if (!isActive) e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <img
-                      src={conn.avatar}
-                      alt=""
-                      style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <img
+                        src={conn.avatar}
+                        alt=""
+                        style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+                      />
+                      {(connections.indexOf(conn) % 3 !== 0) && (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '2px',
+                          right: '2px',
+                          width: '10px',
+                          height: '10px',
+                          background: '#10B981',
+                          border: '2px solid var(--bg-primary)',
+                          borderRadius: '50%'
+                        }} />
+                      )}
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                       <span style={{ fontWeight: '600', fontSize: '14px', color: isActive ? '#fff' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {conn.fullName}
@@ -327,6 +373,7 @@ const ChatView = () => {
               ) : (
                 messages.map((msg, index) => {
                   const isMe = msg.sender?._id === user._id;
+                  const msgId = msg._id || `local-${index}`;
                   return (
                     <div
                       key={msg._id || index}
@@ -343,39 +390,99 @@ const ChatView = () => {
                         maxWidth: '70%'
                       }}>
                         {/* Bubble */}
-                        <div style={{
-                          background: isMe ? 'var(--primary-glow)' : 'var(--bg-secondary)',
-                          color: '#fff',
-                          padding: '12px 16px',
-                          borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                          border: isMe ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid var(--border-color)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                          wordBreak: 'break-word'
-                        }}>
-                          {/* Image Attachments */}
-                          {msg.image && (
-                            <div style={{ marginBottom: '8px', borderRadius: '8px', overflow: 'hidden', maxWidth: '300px' }}>
-                              <img
-                                src={msg.image}
-                                alt="Shared Attachment"
-                                style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', cursor: 'zoom-in' }}
-                                onClick={() => window.open(msg.image, '_blank')}
-                              />
-                            </div>
-                          )}
-                          
-                          {/* Video Attachments */}
-                          {msg.video && (
-                            <div style={{ marginBottom: '8px', borderRadius: '8px', overflow: 'hidden', maxWidth: '300px', background: '#000' }}>
-                              <video
-                                src={msg.video}
-                                controls
-                                style={{ width: '100%', maxHeight: '200px' }}
-                              />
-                            </div>
-                          )}
+                        <div 
+                          className="msg-bubble-container"
+                          style={{ position: 'relative' }}
+                        >
+                          <div style={{
+                            background: isMe ? 'var(--primary-glow)' : 'var(--bg-secondary)',
+                            color: '#fff',
+                            padding: '12px 16px',
+                            borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                            border: isMe ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid var(--border-color)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            wordBreak: 'break-word',
+                            position: 'relative'
+                          }}>
+                            {/* Image Attachments */}
+                            {msg.image && (
+                              <div style={{ marginBottom: '8px', borderRadius: '8px', overflow: 'hidden', maxWidth: '300px' }}>
+                                <img
+                                  src={msg.image}
+                                  alt="Shared Attachment"
+                                  style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', cursor: 'zoom-in' }}
+                                  onClick={() => window.open(msg.image, '_blank')}
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Video Attachments */}
+                            {msg.video && (
+                              <div style={{ marginBottom: '8px', borderRadius: '8px', overflow: 'hidden', maxWidth: '300px', background: '#000' }}>
+                                <video
+                                  src={msg.video}
+                                  controls
+                                  style={{ width: '100%', maxHeight: '200px' }}
+                                />
+                              </div>
+                            )}
 
-                          {msg.text && <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.4' }}>{msg.text}</p>}
+                            {msg.text && <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.4' }}>{msg.text}</p>}
+                          </div>
+
+                          {/* Quick Reactions bar on hover */}
+                          <div className="emoji-reaction-selector" style={{
+                            position: 'absolute',
+                            top: '-26px',
+                            right: isMe ? '10px' : 'auto',
+                            left: isMe ? 'auto' : '10px',
+                            background: 'rgba(30, 30, 40, 0.95)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 'var(--radius-full)',
+                            padding: '2px 8px',
+                            display: 'flex',
+                            gap: '6px',
+                            boxShadow: 'var(--shadow-md)',
+                            zIndex: 10
+                          }}>
+                            {["👍", "❤️", "🔥", "😂"].map(emoji => (
+                              <button
+                                key={emoji}
+                                onClick={() => handleReactToMessage(msgId, emoji)}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  padding: '2px',
+                                  transition: 'transform 0.1s ease'
+                                }}
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Reaction badge */}
+                          {msgReactions[msgId] && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '-8px',
+                              right: isMe ? '12px' : 'auto',
+                              left: isMe ? 'auto' : '12px',
+                              background: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-full)',
+                              padding: '2px 6px',
+                              fontSize: '11px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              boxShadow: 'var(--shadow-sm)',
+                              zIndex: 2
+                            }}>
+                              {msgReactions[msgId]}
+                            </div>
+                          )}
                         </div>
                         
                         {/* Timestamp */}
@@ -532,6 +639,17 @@ const ChatView = () => {
           .chat-sidebar-pane {
             width: 100% !important;
           }
+        }
+        .msg-bubble-container .emoji-reaction-selector {
+          opacity: 0;
+          pointer-events: none;
+          transform: translateY(5px);
+          transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        .msg-bubble-container:hover .emoji-reaction-selector {
+          opacity: 1;
+          pointer-events: auto;
+          transform: translateY(0);
         }
       ` }} />
     </div>
