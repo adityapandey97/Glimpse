@@ -87,6 +87,29 @@ const TweetsView = () => {
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to delete post', 'error');
     }
+  const handleLikeTweet = async (tweetId) => {
+    if (!user) {
+      showToast('Please sign in to like posts', 'warning');
+      return;
+    }
+    try {
+      const res = await axios.post(`/api/v1/likes/toggle/t/${tweetId}`);
+      if (res.data?.success) {
+        setTweets(prev => prev.map(t => {
+          if (t._id === tweetId) {
+            const currentlyLiked = t.isLiked;
+            return {
+              ...t,
+              isLiked: !currentlyLiked,
+              likesCount: currentlyLiked ? Math.max(0, t.likesCount - 1) : t.likesCount + 1
+            };
+          }
+          return t;
+        }));
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Failed to toggle like', 'error');
+    }
   };
 
   return (
@@ -233,9 +256,18 @@ const TweetsView = () => {
 
                   {/* Bottom Panel */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.02)' }}>
-                    <button className="btn-icon" style={{ padding: '4px', gap: '4px', fontSize: '12px' }}>
-                      <Heart size={14} />
-                      <span>{tweet._id.startsWith('mock') ? 12 : 0}</span>
+                    <button 
+                      onClick={() => handleLikeTweet(tweet._id)}
+                      className="btn-icon" 
+                      style={{ 
+                        padding: '4px', 
+                        gap: '4px', 
+                        fontSize: '12px',
+                        color: tweet.isLiked ? 'var(--danger)' : 'var(--text-secondary)'
+                      }}
+                    >
+                      <Heart size={14} fill={tweet.isLiked ? 'currentColor' : 'transparent'} />
+                      <span>{tweet.likesCount || 0}</span>
                     </button>
 
                     {isMyTweet && editingTweetId !== tweet._id && (
