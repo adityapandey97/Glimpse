@@ -117,12 +117,12 @@ const publishAVideo = asyncHandler(async (req, res) => {
         }
         // upload files to cloudinary and get the uploaded file urls
         const video = await cloudinaryupload(videoLocalPath);
-        const thumbnail = await cloudinaryupload(thumbnailLocalPath);
         if (!video) {
-            throw new ApiError(400, "Video file is required");
+            throw new ApiError(500, "Failed to upload video to cloud storage. Please check your network and try again.");
         }
+        const thumbnail = await cloudinaryupload(thumbnailLocalPath);
         if (!thumbnail) {
-            throw new ApiError(400, "Thumbnail file is required")
+            throw new ApiError(500, "Failed to upload thumbnail to cloud storage. Please check your network and try again.")
         }
 
         // Modified by Antigravity: Enforce max duration limit of 5 minutes (300 seconds)
