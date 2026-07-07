@@ -16,6 +16,7 @@ const cloudinaryupload=async(localfilepath)=>{
         fs.unlinkSync(localfilepath);
         return response;
     }catch(error){
+        console.error("Cloudinary upload failed: ", error);
         fs.unlinkSync(localfilepath);
         return null;
     }
