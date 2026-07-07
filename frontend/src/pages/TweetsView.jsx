@@ -87,6 +87,8 @@ const TweetsView = () => {
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to delete post', 'error');
     }
+  };
+
   const handleLikeTweet = async (tweetId) => {
     if (!user) {
       showToast('Please sign in to like posts', 'warning');
