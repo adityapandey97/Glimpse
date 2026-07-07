@@ -19,12 +19,25 @@ const getAllTweets = asyncHandler(async (req, res) => {
         .populate("owner", "fullName avatar username")
         .lean();
 
+    const tweetsWithLikes = await Promise.all(tweets.map(async (tweet) => {
+        const likesCount = await Like.countDocuments({ tweet: tweet._id });
+        let isLiked = false;
+        if (req.user?._id) {
+            isLiked = await Like.exists({ tweet: tweet._id, likedby: req.user._id });
+        }
+        return {
+            ...tweet,
+            likesCount,
+            isLiked: !!isLiked
+        };
+    }));
+
     const totalTweets = await Tweet.countDocuments();
     const totalPages = Math.ceil(totalTweets / limitNumber);
 
     return res.status(200).json(
         new ApiResponse(200, {
-            tweets,
+            tweets: tweetsWithLikes,
             pagination: { totalTweets, totalPages, currentPage: pageNumber, pageSize: limitNumber }
         }, "Community tweets fetched successfully")
     );
@@ -63,9 +76,23 @@ const getUserTweets = asyncHandler(async (req, res) => {
        .sort({ createdAt: -1 })
        .populate("owner", "fullName avatar username")
        .lean();
+
+   const tweetsWithLikes = await Promise.all(tweets.map(async (tweet) => {
+       const likesCount = await Like.countDocuments({ tweet: tweet._id });
+       let isLiked = false;
+       if (req.user?._id) {
+           isLiked = await Like.exists({ tweet: tweet._id, likedby: req.user._id });
+       }
+       return {
+           ...tweet,
+           likesCount,
+           isLiked: !!isLiked
+       };
+   }));
+
    // Return 200 with empty list instead of throwing 404
    return res.status(200).json(
-       new ApiResponse(200, tweets, tweets.length === 0 ? "No tweets found for this user" : "Tweets fetched successfully")
+       new ApiResponse(200, tweetsWithLikes, tweetsWithLikes.length === 0 ? "No tweets found for this user" : "Tweets fetched successfully")
    );
 })
 
