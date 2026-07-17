@@ -30,95 +30,114 @@ const getCookieOptions = () => {
 
 
 const registerUser = asyncHandler(async (req, res, next) => {
-    // error resolved by copilot: controller functions were missing 'next' parameter, causing potential scope issues with Express middleware chain. Added 'next' to all asyncHandler-wrapped functions for proper middleware compatibility.
     try {
-        // req.body contail data like text or json number boolean
-        // here we are destructuring the data from req.body
         const { fullName, email, username, password } = req.body;
 
-        // Debug logs
-        console.log("req.files:", req.files);
-        console.log("req.body:", req.body);
-
-
-        // Fix #1: Check for missing/empty/undefined fields properly
+        // Validate required text fields
         if (!fullName || !email || !username || !password ||
-            [fullName, email, username, password].some((field) => field.trim() === "")) {
-            throw new ApiError(400, "All fields are required");
+            [fullName, email, username, password].some((field) => field.trim() === '')) {
+            throw new ApiError(400, 'All fields are required');
         }
 
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            throw new ApiError(400, "Please provide a valid email address");
+        if (!emailRegex.test(email.trim())) {
+            throw new ApiError(400, 'Please provide a valid email address');
+        }
+
+        // Validate username: alphanumeric + underscores only
+        const usernameRegex = /^[a-zA-Z0-9_]+$/;
+        if (!usernameRegex.test(username.trim())) {
+            throw new ApiError(400, 'Username can only contain letters, numbers, and underscores');
         }
 
         // Validate password strength
         if (password.length < 6) {
-            throw new ApiError(400, "Password must be at least 6 characters long");
+            throw new ApiError(400, 'Password must be at least 6 characters long');
         }
 
-        // check if user with the same email or username already exists
+        // Check if user with the same email or username already exists
         const existedUser = await User.findOne({
-            $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
+            $or: [
+                { username: username.trim().toLowerCase() },
+                { email: email.trim().toLowerCase() }
+            ]
         });
         if (existedUser) {
-            if (existedUser.username === username.toLowerCase()) {
-                throw new ApiError(409, `Username "${username}" is already taken. Please choose another.`);
+            if (existedUser.username === username.trim().toLowerCase()) {
+                throw new ApiError(409, `Username "${username.trim()}" is already taken. Please choose another.`);
             }
-            throw new ApiError(409, "An account with this email already exists. Please sign in instead.");
+            throw new ApiError(409, 'An account with this email already exists. Please sign in instead.');
         }
 
-        // Check if files are uploaded
+        // Check if avatar file was uploaded
         const avatarLocalPath = req.files?.avatar?.[0]?.path;
-        let coverImageLocalPath = req.files?.coverImage?.[0]?.path;
+        const avatarFileSize = req.files?.avatar?.[0]?.size || 0;
+        const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
         if (!avatarLocalPath) {
-            throw new ApiError(400, "Profile avatar image is required to create your account");
+            throw new ApiError(400, 'Profile avatar image is required to create your account');
         }
 
+        // Validate avatar file size (max 5MB)
+        if (avatarFileSize > 5 * 1024 * 1024) {
+            throw new ApiError(400, `Avatar image is too large (${(avatarFileSize / 1024 / 1024).toFixed(1)}MB). Please use an image smaller than 5MB.`);
+        }
 
-
-        // Upload files to Cloudinary
+        // Upload avatar to Cloudinary
         const avatar = await cloudinaryupload(avatarLocalPath);
-        const coverImage = coverImageLocalPath ? await cloudinaryupload(coverImageLocalPath) : null;
-
-        // Fix #2: Better error message when Cloudinary upload fails
         if (!avatar || !avatar.url) {
-            throw new ApiError(500, "Avatar image upload failed. Please try again with a smaller image.");
+            throw new ApiError(500, 'Avatar image upload failed. Please try again with a smaller image.');
         }
 
+        // Upload cover image to Cloudinary (optional)
+        let coverImage = null;
+        if (coverImageLocalPath) {
+            coverImage = await cloudinaryupload(coverImageLocalPath);
+            // Cover image upload failure is non-fatal — we warn but continue
+            if (!coverImage || !coverImage.url) {
+                console.warn('Cover image upload failed — continuing without cover image');
+                coverImage = null;
+            }
+        }
 
-        // as all data given perfectly so we create the user in the database
-        const user = await User.create({
-            fullName,
-            avatar: avatar.url,
-            coverImage: coverImage?.url || "",
-            email,
-            password,
-            username: username.toLowerCase(),
-        });
+        // Create user in the database
+        let user;
+        try {
+            user = await User.create({
+                fullName: fullName.trim(),
+                avatar: avatar.url,
+                coverImage: coverImage?.url || '',
+                email: email.trim().toLowerCase(),
+                password,
+                username: username.trim().toLowerCase(),
+                provider: 'local'
+            });
+        } catch (dbError) {
+            // DB write failed — clean up the uploaded avatar from Cloudinary
+            if (avatar?.public_id) {
+                const { deleteFromCloudinary } = await import('../utils/cloudinary.js');
+                await deleteFromCloudinary(avatar.public_id, 'image').catch(() => {});
+            }
+            // Handle duplicate key error from DB constraint (race condition)
+            if (dbError.code === 11000) {
+                const field = Object.keys(dbError.keyValue || {})[0];
+                throw new ApiError(409, `An account with this ${field} already exists.`);
+            }
+            throw new ApiError(500, 'Something went wrong while creating your account. Please try again.');
+        }
 
-
-
-
-
-        // fetch the created user without password and refreshToken fields to send in response
-        const createdUser = await User.findById(user._id).select("-password -refreshToken");
-
-
-        // if user creation failed then throw the error
+        // Fetch the created user without sensitive fields
+        const createdUser = await User.findById(user._id).select('-password -refreshToken');
         if (!createdUser) {
-            throw new ApiError(500, "Something went wrong while registering the user");
+            throw new ApiError(500, 'Something went wrong while registering the user');
         }
 
-
-        // send success response with created user data
         return res.status(201).json(
-            new ApiResponse(200, createdUser, "User registered successfully")
+            new ApiResponse(201, createdUser, 'User registered successfully')
         );
     } catch (error) {
-        // Modified by Antigravity: Cleanup local uploaded temp files on error
+        // Cleanup local temp files on any error
         cleanupLocalFiles(req);
         throw error;
     }

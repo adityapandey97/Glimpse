@@ -90,9 +90,8 @@ ApiResponse → custom structured JSON response bhejne ke liye
 
 const publishAVideo = asyncHandler(async (req, res) => {
     try {
-        const { title, description } = req.body
-        
-        // Modified by Antigravity: Validate title and description fields are present
+        const { title, description } = req.body;
+
         if (!title || title.trim() === "") {
             throw new ApiError(400, "Title is required");
         }
@@ -103,57 +102,79 @@ const publishAVideo = asyncHandler(async (req, res) => {
         const videoFileObject = req.files?.videoFile?.[0];
         const videoLocalPath = videoFileObject?.path;
         if (!videoLocalPath) {
-            throw new ApiError(400, "Video file is required");
+            throw new ApiError(400, "Video file is required. Please select a video to upload.");
         }
 
-        // Modified by Antigravity: Enforce max video limit of 10MB
-        if (videoFileObject.size && videoFileObject.size > 10 * 1024 * 1024) {
-            throw new ApiError(400, "Video file size exceeds the maximum limit of 10MB");
+        // Enforce max video file size BEFORE uploading to Cloudinary (save bandwidth)
+        const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+        if (videoFileObject.size && videoFileObject.size > MAX_VIDEO_SIZE) {
+            throw new ApiError(400, `Video file is too large (${(videoFileObject.size / 1024 / 1024).toFixed(1)}MB). Maximum allowed size is 50MB.`);
         }
 
-        const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path
+        const thumbnailFileObject = req.files?.thumbnail?.[0];
+        const thumbnailLocalPath = thumbnailFileObject?.path;
         if (!thumbnailLocalPath) {
-            throw new ApiError(400, "Thumbnail file is required")
-        }
-        // upload files to cloudinary and get the uploaded file urls
-        const video = await cloudinaryupload(videoLocalPath);
-        if (!video) {
-            throw new ApiError(500, "Failed to upload video to cloud storage. Please check your network and try again.");
-        }
-        const thumbnail = await cloudinaryupload(thumbnailLocalPath);
-        if (!thumbnail) {
-            throw new ApiError(500, "Failed to upload thumbnail to cloud storage. Please check your network and try again.")
+            throw new ApiError(400, "Thumbnail image is required. Please select a thumbnail.");
         }
 
-        // Modified by Antigravity: Enforce max duration limit of 5 minutes (300 seconds)
-        if (video.duration && video.duration > 300) {
-            // Clean up files uploaded to Cloudinary
+        // Enforce max thumbnail size (5MB)
+        const MAX_THUMB_SIZE = 5 * 1024 * 1024;
+        if (thumbnailFileObject.size && thumbnailFileObject.size > MAX_THUMB_SIZE) {
+            throw new ApiError(400, `Thumbnail image is too large (${(thumbnailFileObject.size / 1024 / 1024).toFixed(1)}MB). Maximum allowed size is 5MB.`);
+        }
+
+        // Upload video to Cloudinary
+        const video = await cloudinaryupload(videoLocalPath);
+        if (!video || !video.url) {
+            throw new ApiError(500, "Failed to upload video to cloud storage. Please check your connection and try again.");
+        }
+
+        // Upload thumbnail to Cloudinary
+        const thumbnail = await cloudinaryupload(thumbnailLocalPath);
+        if (!thumbnail || !thumbnail.url) {
+            // Clean up the already-uploaded video if thumbnail fails
+            if (video.public_id) {
+                await deleteFromCloudinary(video.public_id, "video");
+            }
+            throw new ApiError(500, "Failed to upload thumbnail to cloud storage. Please try again.");
+        }
+
+        // Enforce max duration limit of 10 minutes (600 seconds)
+        const MAX_DURATION = 600;
+        if (video.duration && video.duration > MAX_DURATION) {
+            // Clean up both Cloudinary assets since we can't use this video
             if (video.public_id) {
                 await deleteFromCloudinary(video.public_id, "video");
             }
             if (thumbnail.public_id) {
                 await deleteFromCloudinary(thumbnail.public_id, "image");
             }
-            throw new ApiError(400, "Video duration exceeds the maximum limit of 5 minutes (300 seconds)");
+            throw new ApiError(400, `Video is too long (${Math.round(video.duration)}s). Maximum allowed duration is ${MAX_DURATION / 60} minutes.`);
         }
 
-        // create video in the database
-        const createdVideo = await Video.create({
-            title,
-            description,
-            videoFile: video.url,
-            thumbnail: thumbnail.url,
-            duration: video.duration || 0,
-            owner: req.user._id
-        })
-        if (!createdVideo) {
-            throw new ApiError(500, "Something went wrong while publishing the video");
+        // Create video record in database
+        let createdVideo;
+        try {
+            createdVideo = await Video.create({
+                title: title.trim(),
+                description: description.trim(),
+                videoFile: video.url,
+                thumbnail: thumbnail.url,
+                duration: video.duration || 0,
+                owner: req.user._id
+            });
+        } catch (dbError) {
+            // DB write failed — clean up Cloudinary to avoid orphaned files
+            if (video.public_id) await deleteFromCloudinary(video.public_id, "video");
+            if (thumbnail.public_id) await deleteFromCloudinary(thumbnail.public_id, "image");
+            throw new ApiError(500, "Failed to save video details. Please try again.");
         }
+
         return res.status(201).json(
-            new ApiResponse(200, createdVideo, "Video published successfully")
+            new ApiResponse(201, createdVideo, "Video published successfully!")
         );
     } catch (error) {
-        // Modified by Antigravity: Cleanup local uploaded temp files on error
+        // Cleanup any local temp files on any error
         cleanupLocalFiles(req);
         throw error;
     }
@@ -222,28 +243,38 @@ const incrementVideoView = asyncHandler(async (req, res) => {
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
+    const { videoId } = req.params;
     const { title, description } = req.body;
-    const video = await Video.findById(videoId)
+
+    // Guard against invalid ObjectId before querying the DB
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID format");
+    }
+
+    if (!title && !description) {
+        throw new ApiError(400, "At least one field (title or description) is required to update");
+    }
+
+    const video = await Video.findById(videoId);
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
-    // here the bug fixed by copilot and the bug is video.uploadedBy — should be video.owner. Explanation: Field name mismatch in ownership check.
+
     if (video.owner.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not authorized to update this video");
     }
+
+    const updateFields = {};
+    if (title && title.trim()) updateFields.title = title.trim();
+    if (description && description.trim()) updateFields.description = description.trim();
+
     const updatedVideo = await Video.findByIdAndUpdate(
         videoId,
-        {
-            $set: {
-                title,
-                description
-            }
-        },
+        { $set: updateFields },
         { new: true }
-    )
+    );
     if (!updatedVideo) {
-        throw new ApiError(500, "Failed to update video details");
+        throw new ApiError(500, "Failed to update video details. Please try again.");
     }
     return res.status(200).json(
         new ApiResponse(200, updatedVideo, "Video updated successfully")
@@ -251,25 +282,42 @@ const updateVideo = asyncHandler(async (req, res) => {
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
-    // here the bug fixed by copilot and the bug is const video = await video.findById(...) — lowercase crash (video used before defined). Explanation: Variable name conflict caused reference error.
-    const video = await Video.findById(videoId)
-    if (!video) {
-        throw new ApiError(404, "Video not found");
+    const { videoId } = req.params;
+
+    // Guard against invalid ObjectId before querying the DB
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID format");
     }
-    // Modified by Antigravity: changed video.uploadedBy to video.owner
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video not found or already deleted");
+    }
+
     if (video.owner.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not authorized to delete this video");
     }
 
-    // Modified by Antigravity: Clean up related likes, comments, and playlist entries for this video
+    // Cascade delete: remove all associated data before deleting the video
     await Like.deleteMany({ video: videoId });
     await Comment.deleteMany({ video: videoId });
     await Playlist.updateMany({}, { $pull: { videos: videoId } });
 
+    // Attempt to remove Cloudinary assets (non-fatal if they fail)
+    try {
+        if (video.videoFile) {
+            const videoPublicId = video.videoFile.split('/').pop()?.split('.')[0];
+            if (videoPublicId) await deleteFromCloudinary(videoPublicId, 'video');
+        }
+        if (video.thumbnail) {
+            const thumbPublicId = video.thumbnail.split('/').pop()?.split('.')[0];
+            if (thumbPublicId) await deleteFromCloudinary(thumbPublicId, 'image');
+        }
+    } catch (cloudErr) {
+        console.warn('Cloudinary cleanup warning during video delete:', cloudErr.message);
+    }
+
     await Video.findByIdAndDelete(videoId);
-    // deleteFromCloudinary(video.videoUrl);
-    // deleteFromCloudinary(video.thumbnailUrl);
     return res.status(200).json(
         new ApiResponse(200, null, "Video deleted successfully")
     );

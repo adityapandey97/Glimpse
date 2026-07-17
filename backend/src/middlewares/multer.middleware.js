@@ -1,108 +1,57 @@
-/*
-===============================================================================
-                        📂 FILE UPLOAD USING MULTER
-===============================================================================
-
-WHAT IS MULTER?
----------------
-Multer is an Express middleware used to handle file uploads like images, PDFs,
-documents, videos, etc. Express cannot handle files by default, so multer helps
-us process multipart/form-data requests.
-
-WHY WE NEED MULTER?
--------------------
-When users upload:
-  - profile pictures
-  - medical reports
-  - prescriptions
-  - documents
-
-we need a way to save those files on the server. Multer handles this easily.
-
--------------------------------------------------------------------------------
-HOW THIS CODE WORKS:
--------------------------------------------------------------------------------
-
-1️⃣ diskStorage():
-   We configure where and how files will be stored.
-
-2️⃣ destination:
-   cb(null, './public/temp')
-   → Save uploaded files inside /public/temp folder.
-
-3️⃣ filename:
-   cb(null, file.originalname)
-   → Save file using its original name.
-
-   Example:
-     photo.png → public/temp/photo.png
-
-   NOTE:
-   Using original name may overwrite files if names are same.
-   Better practice:
-     Date.now() + file.originalname
-
-4️⃣ multer({ storage })
-   → Creates upload middleware.
-
-5️⃣ export default upload
-   → So we can use it in routes.
-
--------------------------------------------------------------------------------
-HOW TO USE IN ROUTES:
--------------------------------------------------------------------------------
-
-Single file:
-  upload.single("image")
-
-Multiple files:
-  upload.array("images", 5)
-
-Access file info:
-  req.file or req.files
-
--------------------------------------------------------------------------------
-WHAT WE GET AFTER UPLOAD:
--------------------------------------------------------------------------------
-req.file contains:
-{
-  filename,
-  path,
-  size,
-  mimetype
-}
-
--------------------------------------------------------------------------------
-REAL PROJECT USE CASES:
--------------------------------------------------------------------------------
-- Profile pictures
-- Patient reports
-- Lab PDFs
-- Medical documents
-- Prescriptions
-
--------------------------------------------------------------------------------
-SUMMARY:
--------------------------------------------------------------------------------
-Multer helps upload and store files on the server safely and easily.
-===============================================================================
-*/
-
 import multer from 'multer';
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, "./public/temp")
+        cb(null, "./public/temp");
     },
     filename: function (req, file, cb) {
-      
-      cb(null, Date.now() + "-" + file.originalname)
+        // Timestamp prefix prevents file name collisions on concurrent uploads
+        cb(null, Date.now() + "-" + file.originalname);
     }
+});
 
-    // error resolved by copilot: added timestamp prefix to filenames to prevent file overwrites when multiple users upload files with the same name
-  })
-  
-export const upload = multer({ 
-    storage, 
-  })
+/**
+ * File type validation — only accept images and videos.
+ * Edge case: rejects PDFs, executables, and other binary blobs
+ * that could slip through if accept="" is bypassed on the client.
+ */
+const fileFilter = (req, file, cb) => {
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg'];
+    const allowedVideoTypes = ['video/mp4', 'video/mpeg', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv', 'video/3gpp'];
+
+    const fieldName = file.fieldname;
+
+    if (fieldName === 'videoFile') {
+        if (allowedVideoTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error(`Invalid video format "${file.mimetype}". Allowed formats: MP4, WebM, OGG, MOV, AVI.`));
+        }
+    } else if (fieldName === 'avatar' || fieldName === 'thumbnail' || fieldName === 'coverImage') {
+        if (allowedImageTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error(`Invalid image format "${file.mimetype}" for ${fieldName}. Allowed formats: JPEG, PNG, WebP, GIF.`));
+        }
+    } else {
+        // Unknown field — allow generically if it's a known media type
+        if ([...allowedImageTypes, ...allowedVideoTypes].includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error(`Unsupported file type: ${file.mimetype}`));
+        }
+    }
+};
+
+export const upload = multer({
+    storage,
+    fileFilter,
+    limits: {
+        // 50MB max for video uploads, 5MB for images
+        // Note: multer doesn't differentiate per-field here, so we enforce
+        // the larger limit and do field-specific checks in controllers.
+        fileSize: 50 * 1024 * 1024, // 50MB overall per file
+    }
+});
+
 export default upload;

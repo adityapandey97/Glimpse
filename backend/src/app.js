@@ -69,9 +69,80 @@ app.use("/api/v1/dashboard", dashboardRouter)
  
 // https:localhost:8000/api/v1/users/register
 
-// here the bug fixed by copilot and the bug is no global error handler. Explanation: Without a global error handler, unhandled errors would crash the server or return generic responses.
+// Global error handler — handles all thrown errors including Multer, JWT, and ApiError
 app.use((err, req, res, next) => {
-    console.error("Backend Error:", err);
+    console.error("Backend Error:", err.name, err.message);
+
+    // Handle Multer-specific errors (file size/count limit violations)
+    if (err.name === 'MulterError') {
+        let message = 'File upload error';
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            message = 'File is too large. Maximum allowed size is 50MB per file.';
+        } else if (err.code === 'LIMIT_FILE_COUNT') {
+            message = 'Too many files uploaded at once.';
+        } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+            message = err.message || 'Unexpected file field or invalid file type.';
+        } else {
+            message = err.message || 'File upload failed.';
+        }
+        return res.status(400).json({ success: false, message, errors: [] });
+    }
+
+    // Handle plain validation errors from our multer fileFilter (file type rejection)
+    if (err.message && (
+        err.message.startsWith('Invalid video format') ||
+        err.message.startsWith('Invalid image format') ||
+        err.message.startsWith('Unsupported file type')
+    )) {
+        return res.status(400).json({ success: false, message: err.message, errors: [] });
+    }
+
+    // Handle JSON syntax errors (malformed request body)
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid JSON in request body. Please check your request format.',
+            errors: []
+        });
+    }
+
+    // Handle JWT errors explicitly
+    if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+            success: false,
+            message: 'Invalid token. Please log in again.',
+            errors: []
+        });
+    }
+    if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+            success: false,
+            message: 'Your session has expired. Please log in again.',
+            errors: []
+        });
+    }
+
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+        const errors = Object.values(err.errors).map(e => e.message);
+        return res.status(400).json({
+            success: false,
+            message: errors[0] || 'Validation failed',
+            errors
+        });
+    }
+
+    // Handle Mongoose duplicate key errors (e.g. unique constraint violations)
+    if (err.code === 11000) {
+        const field = Object.keys(err.keyValue || {})[0] || 'field';
+        return res.status(409).json({
+            success: false,
+            message: `An account with this ${field} already exists.`,
+            errors: []
+        });
+    }
+
+    // Default: use ApiError fields or fallback values
     const statusCode = err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     res.status(statusCode).json({
